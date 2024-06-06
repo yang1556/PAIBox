@@ -418,18 +418,4 @@ class ConvTranspose2dSyn(FullConnectedSyn):
         self._set_comm(comm)
 
 
-class DelayConnSyn(FullConnectedSyn):
-
-    def __init__(
-            self,
-            source: Union[NeuDyn, InputProj],
-            dest: Neuron,
-            latency: int,
-            name: Optional[str] = None,
-    ) -> None:
-        super().__init__(source, dest, name)
-        in_ch, in_h, in_w = _fm_ndim2_check(source.shape_out, "CHW")
-        comm = OneToOne(in_ch * latency * in_h, 1)
-        self._set_comm(comm)
-
 

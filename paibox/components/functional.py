@@ -23,7 +23,7 @@ from .neuron import Neuron
 from .neuron.neurons import *
 from .neuron.utils import VJT_MIN_LIMIT, _is_vjt_overflow
 from .projection import InputProj
-from .synapses import FullConnSyn, DelayConnSyn, Conv2dHalfRollSyn
+from .synapses import FullConnSyn, Conv2dHalfRollSyn
 from .synapses import GeneralConnType as GConnType
 from .synapses.conv_types import _Size2Type
 from .synapses.conv_utils import _fm_ndim2_check, _pair

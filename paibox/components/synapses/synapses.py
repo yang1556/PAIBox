@@ -14,13 +14,12 @@ from .base import (
     ConvTranspose1dSyn,
     ConvTranspose2dSyn,
     FullConnSyn,
-    DelayConnSyn,
 )
 from .conv_types import _KOrder3d, _KOrder4d, _Size1Type, _Size2Type
 from .conv_utils import _pair, _single
 from .transforms import GeneralConnType as GConnType
 
-__all__ = ["FullConn", "Conv1d", "Conv2d", "ConvTranspose1d", "ConvTranspose2d", "DelayConn"]
+__all__ = ["FullConn", "Conv1d", "Conv2d", "ConvTranspose1d", "ConvTranspose2d"]
 
 
 class FullConn(FullConnSyn):
@@ -227,19 +226,3 @@ class ConvTranspose2d(ConvTranspose2dSyn):
             name,
         )
 
-
-class DelayConn(DelayConnSyn):
-    def __init__(
-            self,
-            source: Union[Neuron, InputProj],
-            dest: Neuron,
-            latency: int,
-            *,
-            name: Optional[str] = None,
-    ) -> None:
-        super().__init__(
-            source,
-            dest,
-            latency,
-            name
-        )
