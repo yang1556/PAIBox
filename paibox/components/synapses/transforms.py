@@ -15,6 +15,7 @@ from .conv_utils import (
     _conv1d_unroll,
     _conv2d_faster,
     _conv2d_unroll,
+    _conv2d_halfroll,
     _convtranspose1d_faster,
     _convtranspose1d_unroll,
     _convtranspose2d_faster,
@@ -356,6 +357,36 @@ class Conv2dForward(Transform):
             self.in_shape, self.out_shape, self.weights, self.stride, self.padding
         )
 
+class Conv2dHalfForward(Transform):
+    def __init__(
+        self,
+        in_h: int,
+        n: int,
+        out_shape: Size2Type,
+        kernel: np.ndarray,
+        stride: Size2Type,
+        padding: Size2Type,
+        # fm_order: _Order3d,
+    ) -> None:
+        self.in_h = in_h
+        self.n = n
+        self.out_shape = out_shape
+        self.stride = stride
+        self.padding = padding
+        self.kernel = self.kernel
+        # self.fm_order = fm_order
+
+        super().__init__(kernel)
+
+    def __call__(self, x: SpikeType, *args, **kwargs) -> SynOutType:
+        return
+
+    @property
+    def connectivity(self):
+        return _conv2d_halfroll(
+            self.in_h, self.n, self.out_shape, self.kernel, self.stride, self.padding
+        )
+
 
 class ConvTranspose1dForward(Transform):
     def __init__(
@@ -501,3 +532,6 @@ class _Pool2dForward(Transform):
             self.ksize,
             self.stride,
         )
+
+
+

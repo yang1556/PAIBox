@@ -17,6 +17,7 @@ from .transforms import (
     AllToAll,
     Conv1dForward,
     Conv2dForward,
+    Conv2dHalfForward,
     ConvTranspose1dForward,
     ConvTranspose2dForward,
 )
@@ -37,10 +38,10 @@ def _check_equal(num_in: int, num_out: int) -> int:
 
 class Synapses:
     def __init__(
-        self,
-        source: Union[NeuDyn, InputProj],
-        dest: NeuDyn,
-        subclass_syn_name: str,
+            self,
+            source: Union[NeuDyn, InputProj],
+            dest: NeuDyn,
+            subclass_syn_name: str,
     ) -> None:
         self._source = source
         self._target = dest
@@ -106,14 +107,13 @@ class Synapses:
 
 
 class FullConnectedSyn(Synapses, SynSys):
-
     comm: Transform
 
     def __init__(
-        self,
-        source: Union[NeuDyn, InputProj],
-        dest: NeuDyn,
-        name: Optional[str] = None,
+            self,
+            source: Union[NeuDyn, InputProj],
+            dest: NeuDyn,
+            name: Optional[str] = None,
     ) -> None:
         super(Synapses, self).__init__(name)
         super().__init__(source, dest, self.name)
@@ -172,12 +172,12 @@ class FullConnectedSyn(Synapses, SynSys):
 
 class FullConnSyn(FullConnectedSyn):
     def __init__(
-        self,
-        source: Union[NeuDyn, InputProj],
-        dest: NeuDyn,
-        weights: DataArrayType,
-        conn_type: GConnType,
-        name: Optional[str] = None,
+            self,
+            source: Union[NeuDyn, InputProj],
+            dest: NeuDyn,
+            weights: DataArrayType,
+            conn_type: GConnType,
+            name: Optional[str] = None,
     ) -> None:
         super().__init__(source, dest, name)
 
@@ -205,14 +205,14 @@ class Conv1dSyn(FullConnectedSyn):
     _spatial_ndim: ClassVar[int] = 1
 
     def __init__(
-        self,
-        source: Union[NeuDyn, InputProj],
-        dest: Neuron,
-        kernel: np.ndarray,
-        stride: Tuple[int],
-        padding: Tuple[int],
-        order: _KOrder3d,
-        name: Optional[str] = None,
+            self,
+            source: Union[NeuDyn, InputProj],
+            dest: Neuron,
+            kernel: np.ndarray,
+            stride: Tuple[int],
+            padding: Tuple[int],
+            order: _KOrder3d,
+            name: Optional[str] = None,
     ) -> None:
         super().__init__(source, dest, name)
 
@@ -247,14 +247,14 @@ class Conv2dSyn(FullConnectedSyn):
     _spatial_ndim: ClassVar[int] = 2
 
     def __init__(
-        self,
-        source: Union[NeuDyn, InputProj],
-        dest: Neuron,
-        kernel: np.ndarray,
-        stride: Tuple[int, int],
-        padding: Tuple[int, int],
-        order: _KOrder4d,
-        name: Optional[str] = None,
+            self,
+            source: Union[NeuDyn, InputProj],
+            dest: Neuron,
+            kernel: np.ndarray,
+            stride: Tuple[int, int],
+            padding: Tuple[int, int],
+            order: _KOrder4d,
+            name: Optional[str] = None,
     ) -> None:
         super().__init__(source, dest, name)
 
@@ -286,19 +286,60 @@ class Conv2dSyn(FullConnectedSyn):
         self._set_comm(comm)
 
 
+class Conv2dHalfRollSyn(FullConnectedSyn):
+
+    def __init__(
+            self,
+            source: Union[NeuDyn, InputProj],
+            dest: Neuron,
+            kernel: np.ndarray,
+            stride: Tuple[int, int],
+            padding: Tuple[int, int],
+            order: _KOrder4d,
+            name: Optional[str] = None,
+    ) -> None:
+        super().__init__(source, dest, name)
+
+
+        if order == "IOHW":
+            _kernel = np.swapaxes(kernel, 0, 1)
+        else:
+            _kernel = kernel.copy()
+
+        # O,I,H,W
+        out_channels, in_channels, kernel_h, kernel_w = _kernel.shape
+        # C,H,W
+        if len(source.shape_out) == 2:
+            in_ch, in_h_delay = source.shape_out
+            in_h = in_h_delay/kernel_h
+            n = in_h_delay/in_h
+        else:
+            in_ch, in_h, in_w = _fm_ndim2_check(source.shape_out, "CHW")
+            n = 1
+            out_h = (in_h + 2 * padding[0] - kernel_h) // stride[0] + 1
+            out_w = (in_w + 2 * padding[1] - kernel_w) // stride[1] + 1
+
+        if in_ch != in_channels:
+            raise ShapeError(f"input channels mismatch: {in_ch} != {in_channels}.")
+
+        #comm = Conv2dForward((in_h, in_w), (out_h, out_w), _kernel, stride, padding)
+        comm = Conv2dHalfForward(in_h, n, (out_h, out_w), _kernel, stride, padding)
+        self._set_comm(comm)
+
+
 class ConvTranspose1dSyn(FullConnectedSyn):
     _spatial_ndim: ClassVar[int] = 1
 
     def __init__(
-        self,
-        source: Union[NeuDyn, InputProj],
-        dest: Neuron,
-        kernel: np.ndarray,
-        stride: Tuple[int],
-        padding: Tuple[int],
-        output_padding: Tuple[int],
-        order: _KOrder3d,
-        name: Optional[str] = None,
+            self,
+            source: Union[NeuDyn, InputProj],
+            dest: Neuron,
+            kernel: np.ndarray,
+            stride: Tuple[int],
+            padding: Tuple[int],
+            output_padding: Tuple[int],
+            order: _KOrder3d,
+            name: Optional[str] = None,
     ) -> None:
         super().__init__(source, dest, name)
 
@@ -335,15 +376,15 @@ class ConvTranspose2dSyn(FullConnectedSyn):
     _spatial_ndim: ClassVar[int] = 2
 
     def __init__(
-        self,
-        source: Union[NeuDyn, InputProj],
-        dest: Neuron,
-        kernel: np.ndarray,
-        stride: Tuple[int, int],
-        padding: Tuple[int, int],
-        output_padding: Tuple[int, int],
-        order: _KOrder4d,
-        name: Optional[str] = None,
+            self,
+            source: Union[NeuDyn, InputProj],
+            dest: Neuron,
+            kernel: np.ndarray,
+            stride: Tuple[int, int],
+            padding: Tuple[int, int],
+            output_padding: Tuple[int, int],
+            order: _KOrder4d,
+            name: Optional[str] = None,
     ) -> None:
         super().__init__(source, dest, name)
 
@@ -375,3 +416,20 @@ class ConvTranspose2dSyn(FullConnectedSyn):
         )
 
         self._set_comm(comm)
+
+
+class DelayConnSyn(FullConnectedSyn):
+
+    def __init__(
+            self,
+            source: Union[NeuDyn, InputProj],
+            dest: Neuron,
+            latency: int,
+            name: Optional[str] = None,
+    ) -> None:
+        super().__init__(source, dest, name)
+        in_ch, in_h, in_w = _fm_ndim2_check(source.shape_out, "CHW")
+        comm = OneToOne(in_ch * latency * in_h, 1)
+        self._set_comm(comm)
+
+

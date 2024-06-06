@@ -539,6 +539,18 @@ class Neuron(MetaNeuron, NeuDyn):
     def copy(self) -> "Neuron":
         return self.__deepcopy__()
 
+    def shape_change(self, new_shape: Shape) -> None:
+        self._n_neuron = shape2num(new_shape)
+        self._shape = as_shape(new_shape)
+        self._vjt = self.init_param(0).astype(np.int32)
+        self._inner_spike = self.init_param(0).astype(np.bool_)
+        self.vj = self.init_param(0).astype(np.int32)
+        self.y = self.init_param(0).astype(np.int32)
+        self.delay_registers = np.zeros(
+                (HwConfig.N_TIMESLOT_MAX,) + self._inner_spike.shape, dtype=np.bool_
+            )
+        return
+
     @property
     def shape_in(self) -> Tuple[int, ...]:
         return self._shape

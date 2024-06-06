@@ -14,23 +14,24 @@ from .base import (
     ConvTranspose1dSyn,
     ConvTranspose2dSyn,
     FullConnSyn,
+    DelayConnSyn,
 )
 from .conv_types import _KOrder3d, _KOrder4d, _Size1Type, _Size2Type
 from .conv_utils import _pair, _single
 from .transforms import GeneralConnType as GConnType
 
-__all__ = ["FullConn", "Conv1d", "Conv2d", "ConvTranspose1d", "ConvTranspose2d"]
+__all__ = ["FullConn", "Conv1d", "Conv2d", "ConvTranspose1d", "ConvTranspose2d", "DelayConn"]
 
 
 class FullConn(FullConnSyn):
     def __init__(
-        self,
-        source: Union[NeuDyn, InputProj],
-        dest: NeuDyn,
-        weights: DataArrayType = 1,
-        *,
-        conn_type: GConnType = GConnType.MatConn,
-        name: Optional[str] = None,
+            self,
+            source: Union[NeuDyn, InputProj],
+            dest: NeuDyn,
+            weights: DataArrayType = 1,
+            *,
+            conn_type: GConnType = GConnType.MatConn,
+            name: Optional[str] = None,
     ) -> None:
         """Full-connected synapses.
 
@@ -46,13 +47,13 @@ class FullConn(FullConnSyn):
 
 class NoDecay(FullConn):
     def __init__(
-        self,
-        source: Union[NeuDyn, InputProj],
-        dest: NeuDyn,
-        weights: DataArrayType = 1,
-        *,
-        conn_type: GConnType = GConnType.MatConn,
-        name: Optional[str] = None,
+            self,
+            source: Union[NeuDyn, InputProj],
+            dest: NeuDyn,
+            weights: DataArrayType = 1,
+            *,
+            conn_type: GConnType = GConnType.MatConn,
+            name: Optional[str] = None,
     ) -> None:
         warnings.warn(
             "'NoDecay' will be deprecated in future versions. Use 'FullConn' instead.",
@@ -64,15 +65,15 @@ class NoDecay(FullConn):
 
 class Conv1d(Conv1dSyn):
     def __init__(
-        self,
-        source: Union[Neuron, InputProj],
-        dest: Neuron,
-        kernel: np.ndarray,
-        *,
-        stride: _Size1Type = 1,
-        padding: _Size1Type = 0,
-        kernel_order: _KOrder3d = "OIL",
-        name: Optional[str] = None,
+            self,
+            source: Union[Neuron, InputProj],
+            dest: Neuron,
+            kernel: np.ndarray,
+            *,
+            stride: _Size1Type = 1,
+            padding: _Size1Type = 0,
+            kernel_order: _KOrder3d = "OIL",
+            name: Optional[str] = None,
     ) -> None:
         """1d convolution synapses in fully-unrolled format.
 
@@ -99,15 +100,15 @@ class Conv1d(Conv1dSyn):
 
 class Conv2d(Conv2dSyn):
     def __init__(
-        self,
-        source: Union[Neuron, InputProj],
-        dest: Neuron,
-        kernel: np.ndarray,
-        *,
-        stride: _Size2Type = 1,
-        padding: _Size2Type = 0,
-        kernel_order: _KOrder4d = "OIHW",
-        name: Optional[str] = None,
+            self,
+            source: Union[Neuron, InputProj],
+            dest: Neuron,
+            kernel: np.ndarray,
+            *,
+            stride: _Size2Type = 1,
+            padding: _Size2Type = 0,
+            kernel_order: _KOrder4d = "OIHW",
+            name: Optional[str] = None,
     ) -> None:
         """2d convolution synapses in fully-unrolled format.
 
@@ -134,16 +135,16 @@ class Conv2d(Conv2dSyn):
 
 class ConvTranspose1d(ConvTranspose1dSyn):
     def __init__(
-        self,
-        source: Union[Neuron, InputProj],
-        dest: Neuron,
-        kernel: np.ndarray,
-        *,
-        stride: _Size1Type = 1,
-        padding: _Size1Type = 0,
-        output_padding: _Size1Type = 0,
-        kernel_order: _KOrder3d = "OIL",
-        name: Optional[str] = None,
+            self,
+            source: Union[Neuron, InputProj],
+            dest: Neuron,
+            kernel: np.ndarray,
+            *,
+            stride: _Size1Type = 1,
+            padding: _Size1Type = 0,
+            output_padding: _Size1Type = 0,
+            kernel_order: _KOrder3d = "OIL",
+            name: Optional[str] = None,
     ) -> None:
         """1d transposed convolution synapses in fully-unrolled format.
 
@@ -180,16 +181,16 @@ class ConvTranspose1d(ConvTranspose1dSyn):
 
 class ConvTranspose2d(ConvTranspose2dSyn):
     def __init__(
-        self,
-        source: Union[Neuron, InputProj],
-        dest: Neuron,
-        kernel: np.ndarray,
-        *,
-        stride: _Size2Type = 1,
-        padding: _Size2Type = 0,
-        output_padding: _Size2Type = 0,
-        kernel_order: _KOrder4d = "OIHW",
-        name: Optional[str] = None,
+            self,
+            source: Union[Neuron, InputProj],
+            dest: Neuron,
+            kernel: np.ndarray,
+            *,
+            stride: _Size2Type = 1,
+            padding: _Size2Type = 0,
+            output_padding: _Size2Type = 0,
+            kernel_order: _KOrder4d = "OIHW",
+            name: Optional[str] = None,
     ) -> None:
         """2d transposed convolution synapses in fully-unrolled format.
 
@@ -224,4 +225,21 @@ class ConvTranspose2d(ConvTranspose2dSyn):
             _pair(output_padding),
             kernel_order,
             name,
+        )
+
+
+class DelayConn(DelayConnSyn):
+    def __init__(
+            self,
+            source: Union[Neuron, InputProj],
+            dest: Neuron,
+            latency: int,
+            *,
+            name: Optional[str] = None,
+    ) -> None:
+        super().__init__(
+            source,
+            dest,
+            latency,
+            name
         )

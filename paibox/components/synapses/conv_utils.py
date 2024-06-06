@@ -176,6 +176,17 @@ def _conv2d_unroll(
     return w_unrolled
 
 
+def _conv2d_halfroll(
+        in_h: int,
+        n: int,
+        out_shape: Size2Type,
+        kernel: WeightType,
+        stride: Size2Type,
+        padding: Size2Type,
+) -> WeightType:
+
+    return
+
 def _pool2d_kernel_unroll(
     channels: int,
     in_shape: Size2Type,
