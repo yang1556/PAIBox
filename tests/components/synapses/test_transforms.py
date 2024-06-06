@@ -1,5 +1,3 @@
-from typing import Tuple
-
 import numpy as np
 import pytest
 
@@ -201,53 +199,63 @@ class TestTransforms:
         assert f.connectivity.shape == shape
 
     @pytest.mark.parametrize(
-        "shape, x, weights, expected_dtype",
+        "x, weights, expected_dtype",
         [
             (
-                (3, 4),
-                np.array([1, 1, 1], dtype=np.bool_),
+                np.arange(12, dtype=np.int8).reshape(3, 4),
                 np.array([[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]], dtype=np.int8),
                 np.int8,
             ),
             (
-                (10, 20),
                 np.random.randint(2, size=(10,), dtype=np.bool_),
                 np.random.randint(-10, 10, size=(10, 20), dtype=np.int8),
                 np.int8,
             ),
             (
-                (20, 10),
-                np.ones((20,), dtype=np.bool_),
+                np.ones((20, 10), dtype=np.bool_),
                 np.random.randint(2, size=(20, 10), dtype=np.bool_),
                 np.bool_,
             ),
             (
-                (2, 2),
-                np.array([1, 1], dtype=np.bool_),
+                np.array((1, 1), dtype=np.bool_),
                 np.array([[127, 0], [3, -128]], dtype=np.int8),
                 np.int8,
             ),
         ],
-        ids=["weights_int8_1", "weights_int8_2", "weights_bool", "weights_int8_3"],
     )
-    def test_MaskedLinear_conn(self, shape, x, weights, expected_dtype):
-        f = tfm.MaskedLinear(shape, weights)
+    def test_MaskedLinear(self, x, weights, expected_dtype):
+        if x.ndim == 1:
+            in_shape = (1, x.shape[0])
+        else:
+            in_shape = x.shape
+
+        if in_shape[0] == weights.shape[0]:
+            axes = (1, 0)
+        else:
+            axes = (0, 1)
+
+        _in_shape = tuple(in_shape[i] for i in axes)
+        oshape = _in_shape[:-1] + weights.shape[1:]
+
+        f = tfm.MaskedLinear(x.shape, oshape, weights)
         y = f(x)
-        expected = x @ weights.copy().astype(np.int32)
+        y2 = x.flatten() @ f.connectivity.astype(np.int32)
+        expected = x.reshape(in_shape).transpose(axes) @ weights.copy().astype(np.int32)
 
         assert f.connectivity.dtype == expected_dtype
-        assert y.shape == (shape[1],)
-        assert y.dtype == np.int32
+        assert y.shape == oshape
+        assert y2.dtype == np.int32
         assert np.array_equal(y, expected)
-        assert f.connectivity.shape == shape
+        assert np.array_equal(y2, expected.ravel())
+        assert f.connectivity.shape == (x.size, y.size)
 
     @staticmethod
     def _conv1d_golden(
         x: np.ndarray,
-        out_shape: Tuple[int],
+        out_shape: tuple[int],
         kernel: np.ndarray,
-        stride: Tuple[int],
-        padding: Tuple[int],
+        stride: tuple[int],
+        padding: tuple[int],
     ):
         cout, cin, kl = kernel.shape
         xcin, il = x.shape
@@ -361,10 +369,10 @@ class TestTransforms:
     @staticmethod
     def _conv2d_golden(
         x: np.ndarray,
-        out_shape: Tuple[int, int],
+        out_shape: tuple[int, int],
         kernel: np.ndarray,
-        stride: Tuple[int, int],
-        padding: Tuple[int, int],
+        stride: tuple[int, int],
+        padding: tuple[int, int],
     ):
         cout, cin, kh, kw = kernel.shape
         xcin, ih, iw = x.shape
@@ -484,11 +492,11 @@ class TestTransforms:
     @staticmethod
     def _convtranspose1d_golden(
         x: np.ndarray,
-        out_shape: Tuple[int],
+        out_shape: tuple[int],
         kernel: np.ndarray,
-        stride: Tuple[int],
-        padding: Tuple[int],
-        output_padding: Tuple[int],
+        stride: tuple[int],
+        padding: tuple[int],
+        output_padding: tuple[int],
     ):
         cout, cin, kl = kernel.shape
         xcin, il = x.shape
@@ -627,11 +635,11 @@ class TestTransforms:
     @staticmethod
     def _convtranspose2d_golden(
         x: np.ndarray,
-        out_shape: Tuple[int, int],
+        out_shape: tuple[int, int],
         kernel: np.ndarray,
-        stride: Tuple[int, int],
-        padding: Tuple[int, int],
-        output_padding: Tuple[int, int],
+        stride: tuple[int, int],
+        padding: tuple[int, int],
+        output_padding: tuple[int, int],
     ):
         cout, cin, kh, kw = kernel.shape
         xcin, ih, iw = x.shape

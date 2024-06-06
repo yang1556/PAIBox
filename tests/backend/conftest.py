@@ -8,6 +8,7 @@ from paicorelib import (
     LCN_EX,
     AxonCoord,
     Coord,
+    CoordOffset,
     InputWidthFormat,
     MaxPoolingEnable,
     NeuronSegment,
@@ -21,9 +22,11 @@ from paicorelib import WeightPrecision as WP
 import paibox as pb
 from paibox.backend.conf_template import (
     CoreConfig,
-    CorePlacementConfig,
-    EmptyCorePlacementConfig,
+    CorePlmConfig,
+    EmptyCorePlmConfig,
     NeuronConfig,
+    NeuronDest,
+    NeuronDestInfo,
 )
 from paibox.backend.placement import NeuSeg
 from paibox.backend.routing import RoutingCluster
@@ -378,35 +381,30 @@ class Network_with_Branches_4bit(pb.Network):
             self.inp1,
             self.n1,
             weights=rng.randint(-8, 8, size=(10, 10), dtype=np.int8),
-            conn_type=pb.SynConnType.MatConn,
             name="s1",
         )
         self.s2 = pb.FullConn(
             self.n1,
             self.n2,
             weights=rng.randint(-8, 8, size=(10, 10), dtype=np.int8),
-            conn_type=pb.SynConnType.MatConn,
             name="s2",
         )
         self.s3 = pb.FullConn(
             self.n1,
             self.n3,
             weights=rng.randint(-8, 8, size=(10, 10), dtype=np.int8),
-            conn_type=pb.SynConnType.MatConn,
             name="s3",
         )
         self.s4 = pb.FullConn(
             self.n2,
             self.n4,
             weights=rng.randint(-8, 8, size=(10, 4), dtype=np.int8),
-            conn_type=pb.SynConnType.MatConn,
             name="s4",
         )
         self.s5 = pb.FullConn(
             self.n3,
             self.n4,
             weights=rng.randint(-8, 8, size=(10, 4), dtype=np.int8),
-            conn_type=pb.SynConnType.MatConn,
             name="s5",
         )
 
@@ -430,35 +428,30 @@ class Network_with_Branches_8bit(pb.Network):
             self.inp1,
             self.n1,
             weights=rng.randint(-128, 128, size=(10, 10), dtype=np.int8),
-            conn_type=pb.SynConnType.MatConn,
             name="s1",
         )
         self.s2 = pb.FullConn(
             self.n1,
             self.n2,
             weights=rng.randint(-128, 128, size=(10, 10), dtype=np.int8),
-            conn_type=pb.SynConnType.MatConn,
             name="s2",
         )
         self.s3 = pb.FullConn(
             self.n1,
             self.n3,
             weights=rng.randint(-128, 128, size=(10, 10), dtype=np.int8),
-            conn_type=pb.SynConnType.MatConn,
             name="s3",
         )
         self.s4 = pb.FullConn(
             self.n2,
             self.n4,
             weights=rng.randint(-128, 128, size=(10, 4), dtype=np.int8),
-            conn_type=pb.SynConnType.MatConn,
             name="s4",
         )
         self.s5 = pb.FullConn(
             self.n3,
             self.n4,
             weights=rng.randint(-128, 128, size=(10, 4), dtype=np.int8),
-            conn_type=pb.SynConnType.MatConn,
             name="s5",
         )
 
@@ -538,6 +531,130 @@ class Nested_Net_level_3(pb.DynSysGroup):
         )
 
         super().__init__(subnet1)
+
+
+class MultichipNet1(pb.DynSysGroup):
+    def __init__(self, scale: int):
+        super().__init__()
+        self.inp1 = pb.InputProj(1, shape_out=(1000,))
+
+        self.n = NodeList()
+
+        for _ in range(5):
+            n = random.randint(800, 1500)
+            thres = random.randint(3, 6)
+            resetv = random.randint(-1, 1)
+
+            self.n.append(pb.IF((n,), thres, resetv))
+
+        for _ in range(3):
+            n = random.randint(3000, 5000)
+            leakv = random.randint(-1, 1)
+            thres = random.randint(3, 6)
+            resetv = random.randint(-1, 1)
+
+            self.n.append(pb.LIF((n,), thres, resetv, leakv))
+
+        for _ in range(4 * scale):
+            n = random.randint(1500, 3000)
+            thres = random.randint(3, 6)
+            resetv = random.randint(-1, 1)
+
+            self.n.append(pb.IF((n,), thres, resetv))
+
+        self.n_out = pb.SpikingRelu(1000)
+
+        self.s = NodeList()
+
+        self.s.append(
+            pb.FullConn(
+                self.inp1,
+                self.n[0],
+                np.random.randint(
+                    -127, 128, size=(self.inp1.num_out, self.n[0].num_in), dtype=np.int8
+                ),
+            )
+        )
+
+        for i in range(7 + 4 * scale):
+            self.s.append(
+                pb.FullConn(
+                    self.n[i],
+                    self.n[i + 1],
+                    np.random.randint(
+                        -127,
+                        128,
+                        size=(self.n[i].num_out, self.n[i + 1].num_in),
+                        dtype=np.int8,
+                    ),
+                )
+            )
+
+        self.s_out = pb.FullConn(
+            self.n[-1],
+            self.n_out,
+            np.random.randint(
+                -127, 128, size=(self.n[-1].num_out, self.n_out.num_in), dtype=np.int8
+            ),
+        )
+
+
+class Network_branch_nodes1(pb.Network):
+    """
+    Before:
+        INP1 -> N1 -> N2 -> N4
+                         -> N5
+                   -> N3 -> N5
+                         -> N6
+    After:
+        INP1 -> N1 -> N2 -> N4
+                      N2'-> N5
+                   -> N3'-> N5
+                   -> N3 -> N6
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.inp1 = pb.InputProj(1, shape_out=(600,), name="inp1")
+        self.n1 = pb.IF((600,), 10, name="n1")
+        self.n2 = pb.IF((800,), 10, name="n2")
+        self.n3 = pb.IF((1200,), 10, name="n3")
+        self.n4 = pb.IF((500,), 10, name="n4")
+        self.n5 = pb.IF((400,), 10, name="n5")
+        self.n6 = pb.IF((200,), 10, name="n6")
+
+        self.s1 = pb.FullConn(self.inp1, self.n1, name="s1")
+        self.s2 = pb.FullConn(self.n1, self.n2, name="s2")
+        self.s3 = pb.FullConn(self.n1, self.n3, name="s3")
+        self.s4 = pb.FullConn(self.n2, self.n4, name="s4")
+        self.s5 = pb.FullConn(self.n2, self.n5, name="s5")
+        self.s6 = pb.FullConn(self.n3, self.n5, name="s6")
+        self.s7 = pb.FullConn(self.n3, self.n6, name="s7")
+
+
+class Network_branch_nodes2(pb.Network):
+    """
+    Before:
+        INP1 -> N1 -> N2 ->
+                   -------> N3 -> N4
+    After:
+        INP1 -> N1'-> N2 ->
+             -> N1'-------> N3 -> N4
+    """
+
+    def __init__(self):
+        super().__init__()
+        self.inp1 = pb.InputProj(1, shape_out=(800,), name="inp1")
+        self.n1 = pb.IF((800,), 10, name="n1")
+        self.n2 = pb.IF((1000,), 10, name="n2")
+        self.n3 = pb.IF((1200,), 10, name="n3")
+        self.n4 = pb.IF((500,), 10, name="n4")
+
+        self.s1 = pb.FullConn(self.inp1, self.n1, name="s1")
+        self.s2 = pb.FullConn(self.n1, self.n2, name="s2")
+        self.s3 = pb.FullConn(self.n1, self.n3, name="s3")
+        self.s4 = pb.FullConn(self.n2, self.n3, name="s4")
+        self.s5 = pb.FullConn(self.n3, self.n4, name="s5")
 
 
 @pytest.fixture(scope="class")
@@ -626,6 +743,26 @@ def build_Nested_Net_level_3():
 
 
 @pytest.fixture(scope="class")
+def build_MultichipNet1_s1():
+    return MultichipNet1(scale=1)
+
+
+@pytest.fixture(scope="class")
+def build_MultichipNet1_s2():
+    return MultichipNet1(scale=2)
+
+
+@pytest.fixture(scope="class")
+def build_Network_branch_nodes1():
+    return Network_branch_nodes1()
+
+
+@pytest.fixture(scope="class")
+def build_Network_branch_nodes2():
+    return Network_branch_nodes2()
+
+
+@pytest.fixture(scope="class")
 def get_mapper() -> pb.Mapper:
     return pb.Mapper()
 
@@ -638,8 +775,8 @@ def MockCoreConfigDict() -> CoreConfig:
     swf = random.choice(list(SpikeWidthFormat))
     num_den = random.randint(1, 512)
     mpe = random.choice(list(MaxPoolingEnable))
-    tws = random.randint(0, 100)
-    twe = random.randint(0, 100)
+    tws = random.randint(0, 10)
+    twe = random.randint(10, 20)
     sme = random.choice(list(SNNModeEnable))
     target_lcn = random.choice(list(LCN_EX))
     test_chip_addr = Coord(random.randint(0, 31), random.randint(0, 31))
@@ -662,16 +799,20 @@ def MockCoreConfigDict() -> CoreConfig:
 
 @pytest.fixture
 def MockNeuronConfig() -> NeuronConfig:
-    n = random.randint(1, 200)
+    n = random.randint(10, 200)
     offset = random.randint(1, 100)
     interval = random.randint(1, 2)
+    thres = random.randint(1, 5)
+    reset_v = random.randint(-5, 5)
+    neuron = pb.IF((n,), thres, reset_v)
+    dest_coord_start = Coord(random.randint(0, 10), random.randint(0, 10))
+    test_chip_addr = Coord(random.randint(0, 31), random.randint(0, 31))
 
-    neuron = pb.IF((n,), 3, reset_v=-1)
     ns = NeuronSegment(slice(0, 0 + n, 1), offset, interval)
 
-    axon_coords = [AxonCoord(0, i) for i in range(0, n)]
-    dest_coords = [Coord(0, 0), Coord(0, 1)]
-    pb.BACKEND_CONFIG.test_chip_addr = (10, 0)
+    axon_coords = [AxonCoord(0, i) for i in range(n)]
+    dest_coords = [dest_coord_start, dest_coord_start + CoordOffset(0, 1)]
+    pb.BACKEND_CONFIG.test_chip_addr = test_chip_addr
 
     return NeuronConfig.encapsulate(
         neuron,
@@ -685,11 +826,44 @@ def MockNeuronConfig() -> NeuronConfig:
 
 
 @pytest.fixture
-def MockCorePlacementConfig(MockCoreConfigDict, MockNeuronConfig):
-    neuron = pb.IF((100,), 3, reset_v=-1)
+def MockNeuronDestInfo(MockNeuronConfig) -> NeuronDestInfo:
+    return MockNeuronConfig.neuron_dest_info
 
-    cpc = CorePlacementConfig.encapsulate(
-        random.randint(1, 200),
+
+@pytest.fixture
+def MockNeuronDest() -> NeuronDest:
+    n = random.randint(100, 1000)
+    tick_relative = [0 for _ in range(n)]
+    addr_axon = [i for i in range(n)]
+
+    addr_core_x = random.randint(0, 31)
+    addr_core_y = random.randint(0, 31)
+    addr_core_x_ex = random.randint(0, 31)
+    addr_core_y_ex = random.randint(0, 31)
+    addr_chip_x = random.randint(0, 31)
+    addr_chip_y = random.randint(0, 31)
+
+    return NeuronDest(
+        tick_relative,
+        addr_axon,
+        addr_core_x,
+        addr_core_y,
+        addr_core_x_ex,
+        addr_core_y_ex,
+        addr_chip_x,
+        addr_chip_y,
+    )
+
+
+@pytest.fixture
+def MockCorePlmConfig(MockCoreConfigDict, MockNeuronConfig):
+    n = random.randint(100, 400)
+    thres = random.randint(1, 5)
+    reset_v = random.randint(-5, 5)
+    neuron = pb.IF((n,), thres, reset_v)
+
+    cpc = CorePlmConfig.encapsulate(
+        random.randint(0, 1000),
         np.random.randint(0, 100, size=(1152, 512), dtype=np.uint64),
         MockCoreConfigDict,
         {neuron: MockNeuronConfig},
@@ -699,8 +873,8 @@ def MockCorePlacementConfig(MockCoreConfigDict, MockNeuronConfig):
 
 
 @pytest.fixture
-def MockEmptyCorePlacementConfig(MockCoreConfigDict):
-    return EmptyCorePlacementConfig.encapsulate(MockCoreConfigDict)
+def MockEmptyCorePlmConfig(MockCoreConfigDict):
+    return EmptyCorePlmConfig.encapsulate(MockCoreConfigDict)
 
 
 def packbits_ref(bits: np.ndarray, count: int) -> int:

@@ -1,8 +1,7 @@
 import sys
 import warnings
-from dataclasses import field
 from functools import cached_property
-from typing import ClassVar, Dict, List, Literal, Optional, Tuple, overload
+from typing import ClassVar, Literal, Optional, overload
 
 import numpy as np
 from numpy.typing import NDArray
@@ -16,6 +15,7 @@ from paicorelib import (
     LCN_EX,
     AxonCoord,
     AxonSegment,
+    ChipCoord,
     Coord,
     CoreMode,
     CoreModeDict,
@@ -25,17 +25,13 @@ from paicorelib import (
 )
 from paicorelib import WeightPrecision as WP
 
-from paibox.base import NeuDyn, PAIBoxObject, SynSys
-from paibox.exceptions import BuildError, ResourceError, TruncationWarning
+from paibox.base import NeuDyn, PAIBoxObject
+from paibox.components import FullConnectedSyn
+from paibox.exceptions import GraphBuildError, ResourceError, TruncationWarning
 from paibox.types import WeightType
 from paibox.utils import check_attr_same, count_unique_elem
 
-from .conf_template import (
-    CoreConfig,
-    CorePlacementConfig,
-    EmptyCorePlacementConfig,
-    NeuronConfig,
-)
+from .conf_template import CoreConfig, CorePlmConfig, EmptyCorePlmConfig, NeuronConfig
 from .context import _BACKEND_CONTEXT
 from .graphs_types import DestNodeType, SourceNodeType
 from .segment_utils import (
@@ -48,10 +44,11 @@ from .segment_utils import (
 )
 
 WeightRamType: TypeAlias = NDArray[np.uint64]  # uint64 weights mapped in weight RAM
+_COORD_UNSET = 0
 
 
 class CoreAbstract(HwCore, PAIBoxObject):
-    SUPPORTED_MODE: ClassVar[Tuple[CoreMode, ...]] = (CoreMode.MODE_SNN,)
+    SUPPORTED_MODE: ClassVar[tuple[CoreMode, ...]] = (CoreMode.MODE_SNN,)
     """Supported core modes."""
 
 
@@ -61,7 +58,11 @@ class CoreBlock(CoreAbstract):
     RUNTIME_MODE: ClassVar[CoreMode] = CoreMode.MODE_SNN
 
     def __init__(
-        self, *parents: SynSys, routing_id: int, seed: int, name: Optional[str] = None
+        self,
+        *parents: FullConnectedSyn,
+        routing_id: int,
+        seed: int,
+        name: Optional[str] = None,
     ) -> None:
         """Core blocks in SNN mode.
 
@@ -74,7 +75,7 @@ class CoreBlock(CoreAbstract):
         super().__init__(name)
         self._parents = parents
         self._lcn_ex = self._n_axon2lcn_ex()
-        self._wp = WP.WEIGHT_WIDTH_8BIT  # Default value
+        self._wp = WP.WEIGHT_WIDTH_8BIT  # default value
         self._routing_id = routing_id
 
         self.seed = seed
@@ -83,19 +84,20 @@ class CoreBlock(CoreAbstract):
         self.target_lcn = LCN_EX.LCN_1X
         """The target(destination core block) LCN."""
 
-        self.lcn_locked = False
+        self._lcn_locked = False
         """Used to indicate whether `lcn_ex` has been adjusted."""
 
-        self.core_coords: List[Coord] = list()
+        self.core_coords: list[Coord] = list()
         """Assigned core coordinates."""
 
-        self.core_placements: Dict[Coord, CorePlacement] = dict()
+        self.chip_coord: ChipCoord = Coord(_COORD_UNSET, _COORD_UNSET)
+        """A core block must be placed on a chip."""
+
+        self.core_placements: dict[Coord, CorePlacement] = dict()
         """Core placements."""
 
         # Segment the group of axons.
-        self.axon_segments: Dict[SourceNodeType, AxonSegment] = get_axon_segments(
-            self.axons, self.n_timeslot, self.n_fanin_max
-        )
+        self.axon_segments: dict[SourceNodeType, AxonSegment] = dict()
         """A dictionary of segments of each axon(source node)."""
 
         self.neuron_segs_of_cb: NeuSegOfCoreBlock = []
@@ -107,26 +109,28 @@ class CoreBlock(CoreAbstract):
         self, optim_target: Literal["latency", "core", "both"] = "both"
     ) -> None:
         """Group the neurons to determine the #N of cores required."""
-        if not self.lcn_locked:
-            raise BuildError("Group the neurons after lcn_ex is locked.")
+        if not self._lcn_locked:
+            raise GraphBuildError("group the neurons after 'lcn_ex' is locked.")
 
         self.neuron_segs_of_cb = get_neu_segments(
             self.dest,
             self.neuron_capacity,
-            _neuron_repl_prop(self.n_weight_bits, self.n_timeslot),
+            neuron_repl_prop(self.n_weight_bits, self.n_timeslot),
             optim_target,
         )
 
     def core_plm_alloc(self) -> None:
         """Allocate `CoreBlock` to physical cores."""
-        if not self.lcn_locked:
-            raise BuildError("Allocate core placements after lcn_ex is locked.")
+        if not self._lcn_locked:
+            raise GraphBuildError("allocate core placements after 'lcn_ex' is locked.")
 
         for i, coord in enumerate(self.core_coords):
             # assert self.get_raw_weight_of_coord(i)[0].shape[0] == self.n_axon
             self.core_placements[coord] = CorePlacement.build(self, i)
 
-    def _get_syn_of(self, src: SourceNodeType, dest: DestNodeType) -> Optional[SynSys]:
+    def _get_syn_of(
+        self, src: SourceNodeType, dest: DestNodeType
+    ) -> Optional[FullConnectedSyn]:
         for syn in self.obj:
             if syn.source == src and syn.dest == dest:
                 return syn
@@ -144,7 +148,7 @@ class CoreBlock(CoreAbstract):
             )
 
         if (
-            lcn := ((self.n_axon - 1) // self.n_fanin_max).bit_length()
+            lcn := int((self.n_axon - 1) // self.n_fanin_max).bit_length()
         ) > LCN_EX.LCN_64X:
             _max_n_axons = self.n_fanin_max * (1 << LCN_EX.LCN_64X)
             raise ResourceError(
@@ -161,24 +165,24 @@ class CoreBlock(CoreAbstract):
     """Interfaces"""
 
     @property
-    def obj(self) -> Tuple[SynSys, ...]:
+    def obj(self) -> tuple[FullConnectedSyn, ...]:
         return self._parents
 
     @property
-    def shape(self) -> Tuple[int, int]:
+    def shape(self) -> tuple[int, int]:
         return (count_unique_elem(self.source), count_unique_elem(self.dest))
 
     @property
-    def source(self) -> List[SourceNodeType]:
+    def source(self) -> list[SourceNodeType]:
         """Ordered unique source nodes."""
         return list(set([parent.source for parent in self.obj]))
 
     @property
-    def axons(self) -> List[SourceNodeType]:
+    def axons(self) -> list[SourceNodeType]:
         return self.source
 
     @property
-    def dest(self) -> List[DestNodeType]:
+    def dest(self) -> list[DestNodeType]:
         """Ordered unique destination nodes."""
         return list(set([parent.dest for parent in self.obj]))
 
@@ -240,7 +244,7 @@ class CoreBlock(CoreAbstract):
             )
 
         self._lcn_ex = lcn_ex
-        self.lcn_locked = True
+        self._lcn_locked = True
 
     @property
     def n_timeslot(self) -> int:
@@ -283,17 +287,17 @@ class CoreBlock(CoreAbstract):
         return sum(d.num_in for d in self.dest)
 
     @property
-    def unrolling_factor(self) -> List[int]:
+    def unrolling_factor(self) -> list[int]:
         return [d.unrolling_factor for d in self.dest]
 
     @property
-    def n_neuron_of_plm(self) -> List[int]:
+    def n_neuron_of_plm(self) -> list[int]:
         """A list of the #N of neurons on each `CorePlacement`.
 
         FIXME Different in SNN/ANN RUNTIME_MODE.
         """
         if len(self.core_coords) == 0:
-            raise BuildError(f"do this after coordinates assignment.")
+            raise GraphBuildError(f"do this after coordinates assignment.")
 
         # Get #N of neurons on each `CorePlacement` according to the
         # maximum address required of neuron segments on each `CorePlacement`.
@@ -304,11 +308,19 @@ class CoreBlock(CoreAbstract):
             for neuron_segs in self.neuron_segs_of_cb
         ]
 
+    def group_axons(self) -> None:
+        if not self._lcn_locked:
+            raise GraphBuildError("get axon segments after 'lcn_ex' is locked.")
+
+        self.axon_segments = get_axon_segments(
+            self.axons, self.n_timeslot, self.n_fanin_max
+        )
+
     @cached_property
-    def raw_weight_of_dest(self) -> List[WeightType]:
+    def raw_weight_of_dest(self) -> list[WeightType]:
         """Merge and then split the weight matrix according to the grouping of neurons."""
         # The concatenated weight for each destination node.
-        w_of_neurons: List[WeightType] = []
+        w_of_neurons: list[WeightType] = []
 
         for d in self.dest:
             # The weights for each destination node.
@@ -332,9 +344,9 @@ class CoreBlock(CoreAbstract):
 
         return w_of_neurons
 
-    def get_raw_weight_of_coord(self, idx: int) -> List[WeightType]:
+    def get_raw_weight_of_coord(self, idx: int) -> list[WeightType]:
         """Get the raw weight of a coordinate(on each `CorePlacement`)."""
-        w_of_neu_segs: List[WeightType] = []
+        w_of_neu_segs: list[WeightType] = []
 
         for neu_seg in self.neuron_segs_of_cb[idx]:
             w_of_dest = self.raw_weight_of_dest[self.dest.index(neu_seg.parent)]
@@ -358,7 +370,7 @@ class CoreBlock(CoreAbstract):
         return ", ".join(n.name for n in self.obj)
 
     @classmethod
-    def build(cls, *synapses: SynSys, routing_id: int, seed: int = 0):
+    def build(cls, *synapses: FullConnectedSyn, routing_id: int, seed: int = 0):
         """Group synapses & build `CoreBlock`."""
         # FIXME where does the parameter check do?
         if seed > (1 << 64) - 1:
@@ -370,7 +382,7 @@ class CoreBlock(CoreAbstract):
         return cls(*synapses, routing_id=routing_id, seed=seed)
 
     @classmethod
-    def export_core_plm_config(cls, cb: "CoreBlock") -> Dict[Coord, CoreConfig]:
+    def export_core_plm_config(cls, cb: "CoreBlock") -> dict[Coord, CoreConfig]:
         """Export the parameters of the core into a dictionary."""
         cb_config = dict()
 
@@ -383,7 +395,7 @@ class CoreBlock(CoreAbstract):
 class CorePlacement(CoreAbstract):
     """The divided synapse placed on a single CORE."""
 
-    WEIGHT_RAM_SHAPE: ClassVar[Tuple[int, int]] = (
+    WEIGHT_RAM_SHAPE: ClassVar[tuple[int, int]] = (
         HwConfig.N_FANIN_PER_DENDRITE_SNN,
         HwConfig.N_DENDRITE_MAX_SNN,
     )
@@ -394,7 +406,7 @@ class CorePlacement(CoreAbstract):
         parent: CoreBlock,
         routing_coord: Coord,
         n_neuron: int,
-        raw_weights: List[WeightType],
+        raw_weights: list[WeightType],
         neu_segs_of_cplm: NeuSegOfCorePlm,
         name: Optional[str] = None,
     ) -> None:
@@ -418,7 +430,7 @@ class CorePlacement(CoreAbstract):
         """The folded weights."""
 
         self.neu_segs_of_cplm = neu_segs_of_cplm
-        self.neu_configs: Dict[NeuDyn, NeuronConfig] = dict()
+        self.neu_configs: dict[NeuDyn, NeuronConfig] = dict()
 
     @classmethod
     def build(cls, parent: CoreBlock, idx: int):
@@ -429,7 +441,7 @@ class CorePlacement(CoreAbstract):
 
         return cls(parent, coord, n_neuron, raw_weights, neu_segs_of_cplm)
 
-    def _fold_raw_weights(self, raw_weights: List[WeightType]) -> WeightType:
+    def _fold_raw_weights(self, raw_weights: list[WeightType]) -> WeightType:
         """Fold the weights into LCN-sized blocks."""
         w_folded_list = []
         w_folded_of_axon_segs = []
@@ -571,7 +583,7 @@ class CorePlacement(CoreAbstract):
 
     @overload
     def export_neu_config(
-        self, neu_seg: NeuSeg, axon_dests: List[CoreBlock]
+        self, neu_seg: NeuSeg, axon_dests: list[CoreBlock]
     ) -> None: ...
 
     @overload
@@ -586,8 +598,7 @@ class CorePlacement(CoreAbstract):
     def export_neu_config(
         self,
         neu_seg: NeuSeg,
-        axon_dests: Optional[List[CoreBlock]] = None,
-        *,
+        axon_dests: Optional[list[CoreBlock]] = None,
         output_core_coord: Optional[Coord] = None,
         axon_addr_offset: Optional[int] = None,
     ) -> Optional[int]:
@@ -600,10 +611,12 @@ class CorePlacement(CoreAbstract):
                 axon_dests[0].n_timeslot,
             )
 
-            # Get all core coordinates then get the RID.
+            # Get all core coordinates and replication ids.
+            assert all(axon_dests[0].chip_coord == ad.chip_coord for ad in axon_dests)
+
             dest_core_coords = []
-            for axon_dest in axon_dests:
-                dest_core_coords.extend(axon_dest.core_coords)
+            for ad in axon_dests:
+                dest_core_coords.extend(ad.core_coords)
 
             config = NeuronConfig.encapsulate(
                 neu_seg.parent,
@@ -612,12 +625,12 @@ class CorePlacement(CoreAbstract):
                 neu_seg.segment.addr_offset,
                 axon_coords,
                 dest_core_coords,
-                # local chip coordinate for member nodes
-                _BACKEND_CONTEXT["local_chip_addr"],
+                axon_dests[0].chip_coord,
             )
 
             self.neu_configs[neu_seg.parent] = config
         else:
+            # neu_seg is a part of an output node
             assert isinstance(output_core_coord, Coord)
             assert isinstance(axon_addr_offset, int)
 
@@ -641,10 +654,10 @@ class CorePlacement(CoreAbstract):
 
             return axon_addr_offset + neu_seg.n_neuron
 
-    def export_core_plm_config(self) -> CorePlacementConfig:
+    def export_core_plm_config(self) -> CorePlmConfig:
         core_param = self.export_param_config()
 
-        return CorePlacementConfig.encapsulate(
+        return CorePlmConfig.encapsulate(
             self.parent.seed,
             self.weight_ram,
             core_param,
@@ -656,7 +669,7 @@ class CorePlacement(CoreAbstract):
         return self.parent.RUNTIME_MODE
 
     @property
-    def shape(self) -> Tuple[int, int]:
+    def shape(self) -> tuple[int, int]:
         return (count_unique_elem(self.source), count_unique_elem(self.dest))
 
     @property
@@ -693,10 +706,10 @@ class CorePlacement(CoreAbstract):
 
     @property
     def n_dendrite(self) -> int:
-        return self.n_neuron * _neuron_repl_prop(self.n_weight_bits, self.n_timeslot)
+        return self.n_neuron * neuron_repl_prop(self.n_weight_bits, self.n_timeslot)
 
     @property
-    def source(self) -> List[SourceNodeType]:
+    def source(self) -> list[SourceNodeType]:
         return self.parent.source
 
     @property
@@ -753,36 +766,27 @@ class EmptyCorePlacement(CoreAbstract):
         # fmt: on
         return cb_config
 
-    def export_core_plm_config(self) -> EmptyCorePlacementConfig:
+    def export_core_plm_config(self) -> EmptyCorePlmConfig:
         core_param = self.export_param_config()
-        return EmptyCorePlacementConfig.encapsulate(core_param)
+        return EmptyCorePlmConfig.encapsulate(core_param)
 
     @classmethod
     def build(cls, coord: Coord):
         return cls(coord)
 
     @property
-    def n_core_required(self):
+    def n_core_required(self) -> int:
         return 1
 
 
-def max_lcn_of_cb(cb: List[CoreBlock]) -> LCN_EX:
+def max_lcn_of_cb(cb: list[CoreBlock]) -> LCN_EX:
     """Find the max LCN extenion of previous grouped synapses"""
     return max(cb, key=lambda cb: cb.lcn_ex).lcn_ex
 
 
-def _neuron_repl_prop(nbits: int, ntimeslot: int) -> int:
+def neuron_repl_prop(nbits: int, ntimeslot: int) -> int:
     """Get the proportion of neuron replication.
 
     scale = nbits(1 << wp) * n_timeslot(1 << lcn_ex)
     """
     return nbits * ntimeslot
-
-
-class CoreMapper:
-    """Manage to group, combine & place the network into the chip.
-
-    TODO Integrate all the info of building the map.
-    """
-
-    core_blocks: List[CoreBlock] = field(default_factory=list)

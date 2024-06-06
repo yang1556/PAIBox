@@ -4,33 +4,27 @@
 
 </div>
 
-## 快速上手
+## 安装
 
-PAIBox使用 `pyproject.toml` 管理依赖。若使用Poetry：
-
-```bash
-poetry install
-```
-
-若使用conda等，则手动安装如下依赖至Python虚拟环境：
+请安装如下依赖：
 
 ```toml
-python = "^3.8"
+python = "^3.9"
 pydantic = "^2.0"
-numpy = "^1.24.0"
-paicorelib = "^1.0.0"
+numpy = "^1.26.0"
+paicorelib = "^1.1.4"
 ```
 
-通过pip安装PAIBox：
+可选依赖：
 
-```bash
-pip install paibox
+```toml
+orjson = "^3.10.0"
 ```
 
-或克隆 `dev` 分支以体验开发版。
+或者从Github克隆，由此下载的PAIBox将包含测试文件、文档等。
 
 ```bash
-git clone -b dev https://github.com/PAICookers/PAIBox.git
+git clone https://github.com/PAICookers/PAIBox.git
 cd PAIBox
 ```
 
@@ -45,31 +39,34 @@ print(pb.__version__)
 
 ## 基本组件
 
-PAIBox提供**神经元**与**突触**作为基本组件，用于搭建神经网络。
+PAIBox 提供**神经元**与**突触**作为基本组件，用于搭建神经网络。
 
 结合**输入节点**，可以对输入数据进行脉冲编码，并传入网络中进行仿真推理。
 
 ### 神经元
 
-PAIBox提供了多种类型的神经元模型，能够实现各种特殊的功能。
+PAIBox 提供了多种类型的神经元模型，能够实现各种特殊的功能。
+
+神经元均支持 `delay`，`tick_wait_start`，`tick_wait_end`，`keep_shape`，`unrolling_factor` 参数。
 
 ⚠️ 神经元初始膜电位为0。
 
 #### IF
 
-IF神经元实现了经典的“积分发射”模型，其调用方式及参数如下：
+IF 神经元实现了经典的“积分发射”模型，其调用方式及参数如下：
 
 ```python
 import paibox as pb
 
-n1 = pb.IF(shape=10, threshold=127, reset_v=0, keep_shape=False, delay=1, tick_wait_start=1, tick_wait_end=0, name='n1')
+n1 = pb.IF(shape=10, threshold=127, reset_v=0, neg_threshold=-100, keep_shape=False, delay=1, tick_wait_start=1, tick_wait_end=0, name='n1')
 ```
 
 其中：
 
 - `shape`：代表神经元组的尺寸，其形式可以是整形标量、元组或列表。
 - `threshold`：神经元阈值，其形式为整数。
-- `reset_v`：神经元的重置膜电位。
+- `reset_v`：神经元的复位电位，可选参数。当指定时，神经元在发放后，进行硬复位( `v = resetv` )；当未指定时，进行软复位( `v -= pos_threshold` )。默认进行软复位。
+- `neg_threshold`：负阈值，神经元膜电位所允许的最小值，必须是非正整数。当未指定时，默认为硬件所允许的最小负整数。
 - `delay`：设定神经元输出的延迟。默认为1，即本时间步的计算结果，**下一时间步**传递至后继节点。
 - `tick_wait_start`：设定神经元启动时间。神经元将在第 `T` 个时间步时启动。0表示不启动。默认为1。
 - `tick_wait_end`：设定神经元持续工作时长。神经元将持续工作 `T` 个时间步。0表示**持续工作**。默认为0。
@@ -79,114 +76,47 @@ n1 = pb.IF(shape=10, threshold=127, reset_v=0, keep_shape=False, delay=1, tick_w
 
 #### LIF
 
-LIF神经元实现了“泄露-积分-发射”神经元模型，其调用方式及参数如下：
+LIF 神经元实现了“泄露-积分-发射”神经元模型，其调用方式及参数如下：
 
 ```python
-n1 = pb.LIF(shape=128, threshold=127, reset_v=0, leak_v=-1, keep_shape=False, name='n1')
+n1 = pb.LIF(shape=128, threshold=127, reset_v=0, leak_v=-1, neg_threshold=0, keep_shape=False, name='n1')
+n2 = pb.LIF(shape=128, threshold=10, reset_v=1, bias=-1, keep_shape=True, name='n2')
 ```
 
-- `leak_v`：LIF神经元的泄露值（有符号）。其他参数含义与IF神经元相同。
+- `leak_v`：LIF 神经元的泄露值，有符号数。
+- `bias`：偏置，有符号数。当指定偏置时，神经元将使用该值作为其泄露值，并**在阈值比较前泄露**，从而实现“偏置”的效果。此时，`leak_v` 将被忽略。在未指定偏置时，神经元先阈值比较后泄露。
+- 其他参数含义与 IF 相同。
 
 #### Tonic Spiking
 
-Tonic Spiking神经元可以实现对持续脉冲刺激的周期性反应。
+Tonic Spiking 神经元可以实现对持续脉冲刺激的周期性反应。
 
 ```python
 n1 = pb.TonicSpiking(shape=128, fire_step=3, keep_shape=False, name='n1')
 ```
 
-- `fire_step`：发放周期，每接收到 `N` 次刺激后发放脉冲。
-
-以下为一个简单实例：
-
-```python
-import paibox as pb
-import numpy as np
-
-n1 = pb.TonicSpiking(shape=1, fire_step=3)
-inp_data = np.ones((10,), dtype=np.bool_)
-output = np.full((10,), 0, dtype=np.bool_)
-voltage = np.full((10,), 0, dtype=np.int32)
-
-for t in range(10):
-    output[t] = n1(inp_data[t])
-    voltage[t] = n1.voltage
-
-print(output)
-
->>> [[False]
-    [False]
-    [ True]
-    [False]
-    [False]
-    [ True]
-    [False]
-    [False]
-    [ True]
-    [False]]
-```
-
-在持续的脉冲输入下，神经元进行周期性的脉冲发放。
+- `fire_step`：发放时间，每接收到 `N` 次刺激后发放脉冲。
 
 #### Phasic Spiking
 
-Phasic Spiking神经元可以实现，在接受一定数量脉冲后发放，然后保持静息状态，不再发放。
+Phasic Spiking 神经元可以实现，在接受一定数量脉冲后发放，然后保持静息状态，不再发放。
 
 ```python
-n1 = pb.PhasicSpiking(shape=128, time_to_fire=3, neg_floor=10, keep_shape=False, name='n1')
+n1 = pb.PhasicSpiking(shape=128, fire_step=3, neg_floor=-10, keep_shape=False, name='n1')
 ```
 
-- `time_to_fire`：发放时间。
-- `neg_floor`：地板阈值，静息时的膜电位为其负值。
-
-以下为一个简单实例：
-
-```python
-import paibox as pb
-import numpy as np
-
-n1 = pb.PhasicSpiking(shape=1, time_to_fire=3)
-# [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-inp_data = np.concatenate((np.zeros((2,), np.bool_), np.ones((10,), np.bool_)))
-output = np.full((12,), 0, dtype=np.bool_)
-voltage = np.full((12,), 0, dtype=np.int32)
-
-for t in range(12):
-    output[t] = n1(inp_data[t])
-    voltage[t] = n1.voltage
-
-print(output)
-
->>>
-    [[False]
-    [False]
-    [False]
-    [False]
-    [ True]
-    [False]
-    [False]
-    [False]
-    [False]
-    [False]
-    [False]
-    [False]]
-```
-
-当有持续性脉冲输入时，神经元会在 `time_to_step` 个时间步后发放脉冲，而后将一直保持静息状态。
-
-#### Always1Neuron
-
-Always1神经元在工作期间持续输出1。
+- `fire_step`：发放时间，每接收到 `N` 次刺激后发放脉冲。
+- `neg_floor`：地板阈值，有符号负数。当发放脉冲后，膜电位将永远保持在地板阈值。
 
 #### Spiking Relu
 
-SNN模式下，具有Relu功能的神经元。当输入为1，则输出为1；输入为0，则输出为0。
+SNN 模式下，具有 Relu 功能的神经元。当输入为1，则输出为1；输入为非正整数，输出为0。
 
 ### 突触
 
-#### 全连接
+#### 全连接 FullConn
 
-PAIBox中，突触用于连接不同神经元组，并包含了连接关系以及权重信息。以全连接类型的突触为实例：
+PAIBox 中，突触用于连接不同神经元组，并包含了连接关系以及权重信息。以全连接类型的突触为实例：
 
 ```python
 s1= pb.FullConn(source=n1, dest=n2, weights=weight1, conn_type=pb.SynConnType.All2All, name='s1')
@@ -205,9 +135,6 @@ s1= pb.FullConn(source=n1, dest=n2, weights=weight1, conn_type=pb.SynConnType.Al
 - `All2All`：全连接
 - `One2One`：单对单连接
 - `Identity`：恒等映射，同单对单连接，权重为缩放因子标量
-- `MatConn`：普通的矩阵连接
-
-通常情况下，`MatConn` 适合所有的连接关系，而 `All2All`、`One2One` 则提供了对于特殊连接更为方便的表达。
 
 ##### All2All 全连接
 
@@ -235,7 +162,6 @@ s1= pb.FullConn(source=n1, dest=n2, weights=weight1, conn_type=pb.SynConnType.Al
   ```
 
   其权重以标量的形式储存。
-
 - 数组：尺寸要求为 `(N2,)`，可以自定义每组对应神经元之间的连接权重。如下例所示，设置 `weights` 为 `[1, 2, 3, 4, 5]`，
 
   ```python
@@ -258,9 +184,30 @@ s1= pb.FullConn(source=n1, dest=n2, weights=weight1, conn_type=pb.SynConnType.Al
 
 具有缩放因子的单对单连接，即 `One2One` 中权重项为标量的特殊情况。
 
-##### MatConn 一般连接
+#### 2D矩阵乘法 MatMul2d
 
-普通的神经元连接类型，仅可以通过矩阵设置其权重 `weights`。
+专门用于表示二维矩阵乘法， $y=x\cdot w$ 或 $y=x^T\cdot w$
+
+- 例如，输入尺寸为 `(n, k)` ，权重尺寸为 `(k, m)`，输出尺寸为 `(n, m)`
+- 当输入尺寸为 `(k, n)` 时，会**自动进行转置**
+- 输入维度最大为2维
+- 当输入维度小于2维，将自动补齐，即 `(N, )` 补齐为 `(1, N)`
+
+```python
+n1 = pb.IF(shape=(8, 16), threshold=1)
+n2 = pb.IF(shape=(8, 10), threshold=1)
+s1 = pb.MatMul2d(source=n1, dest=n2, weights=np.ones((16, 10), dtype=np.int8))
+```
+
+⚠️ 不要与 `FullConn` 混淆。`FullConn` 需要传入 `N*M` 矩阵，其中 `N` 为前向神经元组数目，`M` 为后向神经元组数目。而 `MatMul2d` 中传入的矩阵尺寸并非 `N*M` ，它最终将展开为 `N*M` 矩阵。如下式所示，由于输入/输出数据在芯片中只能以一维表示，因此，它在芯片中的实现为：
+
+$$
+\begin{bmatrix}x_{11}&x_{12}&x_{13}\\x_{21}&x_{22}&x_{23}\end{bmatrix}\cdot\begin{bmatrix}w_{11}&w_{12}\\w_{21}&w_{22}\\w_{31}&w_{32}\end{bmatrix}=\begin{bmatrix}y_{11}&y_{12}\\y_{21}&y_{22}\end{bmatrix}
+$$
+
+$$
+\begin{bmatrix}x_{11}\\x_{12}\\x_{13}\\x_{21}\\x_{22}\\x_{23}\end{bmatrix}\cdot\begin{bmatrix}w_{11}&w_{12}&0&0\\w_{21}&w_{22}&0&0\\w_{31}&w_{32}&0&0\\0&0&w_{11}&w_{12}\\0&0&w_{21}&w_{22}\\0&0&w_{31}&w_{32}\end{bmatrix}=\begin{bmatrix}y_{11}&y_{12}&y_{21}&y_{22}\end{bmatrix}
+$$
 
 #### 1D卷积
 
@@ -279,8 +226,6 @@ kernel = np.random.randint(-128, 128, size=(16, 8, 3), dtype=np.int8) # OIL
 
 conv1d = pb.Conv1d(n1, n2, kernel=kernel, stride=1, padding=0, kernel_order="OIL", name="conv1d_1")
 ```
-
-⚠️ `padding` 目前不支持，默认为0。
 
 #### 2D卷积
 
@@ -316,8 +261,8 @@ conv2d = pb.Conv2d(n1, n2, kernel=kernel, stride=(1, 2), padding=1, kernel_order
 
 ```python
 n1 = pb.IF(shape=(8, 28), threshold=1)      # Input feature map: (8, 28)
-n2 = pb.IF(shape=(16, 26), threshold=1)     # Output feature map: (16, 26)
-kernel = np.random.randint(-128, 128, size=(16, 8, 3), dtype=np.int8) # OIl
+n2 = pb.IF(shape=(16, 29), threshold=1)     # Output feature map: (16, 29)
+kernel = np.random.randint(-128, 128, size=(16, 8, 3), dtype=np.int8) # OIL
 
 convt1d = pb.ConvTranspose1d(n1, n2, kernel=kernel, stride=1, padding=0, output_padding=1, kernel_order="OIL", name="convt1d_1")
 ```
@@ -336,7 +281,7 @@ convt1d = pb.ConvTranspose1d(n1, n2, kernel=kernel, stride=1, padding=0, output_
 
 ```python
 n1 = pb.IF(shape=(8, 28, 28), threshold=1)      # Input feature map: (8, 28, 28)
-n2 = pb.IF(shape=(16, 26, 26), threshold=1)     # Output feature map: (16, 26, 26)
+n2 = pb.IF(shape=(16, 55, 55), threshold=1)     # Output feature map: (16, 55, 55)
 kernel = np.random.randint(-128, 128, size=(16, 8, 3, 3), dtype=np.int8) # OIHW
 
 convt2d = pb.ConvTranspose2d(n1, n2, kernel=kernel, stride=2, padding=1, output_padding=0, kernel_order="OIHW", name="convt2d_1")
@@ -344,9 +289,9 @@ convt2d = pb.ConvTranspose2d(n1, n2, kernel=kernel, stride=2, padding=1, output_
 
 ### 编码器
 
-PAIBox提供了有状态与无状态编码器。其中，有状态编码器是指编码过程与时间有关，将输入数据编码到一段时间窗口内。而无状态编码器是指编码过程与时间无关，每个时间步，都可以根据输入数据进行编码。
+PAIBox 提供了有状态与无状态编码器。其中，有状态编码器是指编码过程与时间有关，将输入数据编码到一段时间窗口内。而无状态编码器是指编码过程与时间无关，每个时间步，都可以根据输入数据进行编码。
 
-⚠️ 请注意，我们只提供较为简单的编码器，以便用户在不依赖外部库的条件下实现基本编码操作；如果需要更复杂的编码，请直接使用它们。
+⚠️ 请注意，我们只提供较为简单的编码器，以便用户在不依赖外部库的条件下实现基本编码操作；如果需要更复杂的编码，请直接使用。
 
 #### 无状态编码器
 
@@ -369,7 +314,7 @@ for t in range(20):
 
 ##### 直接编码
 
-直接编码使用2D卷积进行特征提取，经过LIF神经元进行编码 。`Conv2dEncoder` 使用示例如下：
+直接编码使用2D卷积进行特征提取，经过 LIF 神经元进行编码 。`Conv2dEncoder` 使用示例如下：
 
 ```python
 kernel = np.random.uniform(-1, 1, size=(1, 3, 3, 3)).astype(np.float32) # OIHW
@@ -403,11 +348,11 @@ for t in range(20):
 - `v_reset`：复位电平。
 - 待编码数据维度顺序仅支持 `CHW`。
 
-其中，所使用的LIF为SpikingJelly内的 `SimpleLIFNode`。具体原理参见：[SpikingJelly/SimpleLIFNode](https://spikingjelly.readthedocs.io/zh-cn/latest/sub_module/spikingjelly.activation_based.neuron.html#spikingjelly.activation_based.neuron.SimpleLIFNode)。如果需要使用更复杂的编码，请直接使用它们。
+其中，所使用的 LIF 为 SpikingJelly 内的 `SimpleLIFNode`。具体原理参见：[SpikingJelly/SimpleLIFNode](https://spikingjelly.readthedocs.io/zh-cn/latest/sub_module/spikingjelly.activation_based.neuron.html#spikingjelly.activation_based.neuron.SimpleLIFNode)。如果需要使用更复杂的编码，请直接使用。
 
 #### 有状态编码器
 
-有状态编码器类别较多。PAIBox提供了几种有状态编码器：周期编码器 `PeriodicEncoder`、延迟编码器 `LatencyEncoder` 。
+有状态编码器类别较多。PAIBox 提供了几种有状态编码器：周期编码器 `PeriodicEncoder`、延迟编码器 `LatencyEncoder` 。
 
 ##### 周期编码器
 
@@ -450,7 +395,7 @@ for t in range(T):
 
 ### 输入节点
 
-为了支持多样的数据输入形式，同时标明网络模型的输入节点，PAIBox设计了输入节点这一组件。
+为了支持多样的数据输入形式，同时标明网络模型的输入节点，PAIBox 设计了输入节点这一组件。
 
 输入节点可以使用以下方法定义：
 
@@ -580,7 +525,7 @@ print(output)
 
 #### 编码器类型输入
 
-PAIBox提供了一些常用编码器，编码器内部实现了 `__call__` 方法，因此可作为输入节点的输入使用。在作为输入节点的输入使用时，它与一般函数做为输入节点的输入使用存在差别。
+PAIBox 提供了一些常用编码器，编码器内部实现了 `__call__` 方法，因此可作为输入节点的输入使用。在作为输入节点的输入使用时，它与一般函数做为输入节点的输入使用存在差别。
 
 在例化 `InputProj` 时，输入节点的输入为编码器。在运行时，还需要通过设置 `inp.input`，**向输入节点输入待编码数据**，节点内部将完成编码并输出。以泊松编码器为例：
 
@@ -614,9 +559,11 @@ print(output)
 - 该模块完成运算后的输出效果，则表现为一个具有独立输出能力的“神经元”，其输出接口的设计完全符合神经元的标准形式。这意味着其输出脉冲可作为后继突触的输入。
 - 后端构建时，模块将拆分成一或多个神经元节点与突触。所构建的基础组件尺寸由模块连接的操作数尺寸决定。
 
+功能模块均支持 `delay`，`tick_wait_start`，`tick_wait_end`，`keep_shape` 参数。
+
 ### 逻辑运算
 
-逻辑运算模块实现了 `numpy` 中的位逻辑运算操作（例如 `&` 与 `numpy.bitwise_and` 等），可对接收到的一或多个输出脉冲进行逻辑运算，并产生脉冲输出。PAIBox提供了逻辑与、或、非、异或：`BitwiseAND`，`BitwiseOR`，`BitwiseNOT`，`BitwiseXOR`。以位与为例：
+逻辑运算模块实现了 `numpy` 中的位逻辑运算操作（例如 `&` 与 `numpy.bitwise_and` 等），可对接收到的一或多个输出脉冲进行逻辑运算，并产生脉冲输出。PAIBox 提供了逻辑与、或、非、异或：`BitwiseAND`，`BitwiseOR`，`BitwiseNOT`，`BitwiseXOR`。以位与为例：
 
 ```python
 import paibox as pb
@@ -658,17 +605,17 @@ n2 = pb.SpikingRelu((10,), delay=1, tick_wait_start=n1_delay_out.tick_wait_start
 - `neuron`：进行延迟输出的神经元。
 - `chain_level`：延迟链的级数，即延迟的时间步。注意，这与 `delay` 含义不同：延迟链内部会建立多级神经元（类似buffer），以实现数据的延迟传递，而 `delay` 会使得神经元输出寄存的位置延后，后继节点的启动时间需要提前，这将导致其在前级**有效输出**前就进行了计算。
 
-### 平均/最大池化
+### 2D平均/最大池化
 
-目前仅提供2D池化：`SpikingAvgPool2d`、`SpikingMaxPool2d`。以平均池化为例：
+目前仅提供2D池化：`SpikingAvgPool2d`、`SpikingMaxPool2d`。以最大池化为例：
 
 ```python
 ksize = (3, 3)
 stride = None # default is ksize
 n1 = pb.SpikingRelu(shape, tick_wait_start=1)
-pool2d = pb.SpikingAvgPool2d(n1, ksize, None, tick_wait_start=2)
-n2 = pb.SpikingRelu(pool2d.shape_out, delay=1, tick_wait_start=3)
-s3 = pb.FullConn(pool2d, n2, conn_type=pb.SynConnType.One2One)
+p2d = pb.SpikingMaxPool2d(n1, ksize, stride=None, padding=(1,1), tick_wait_start=2)
+n2 = pb.SpikingRelu(p2d.shape_out, delay=1, tick_wait_start=3)
+s3 = pb.FullConn(p2d, n2, conn_type=pb.SynConnType.One2One)
 ```
 
 其中：
@@ -676,7 +623,16 @@ s3 = pb.FullConn(pool2d, n2, conn_type=pb.SynConnType.One2One)
 - `neuron`：待池化的神经元。
 - `kernel_size`：池化窗口的尺寸，标量或元组格式。当为标量时，对应为 `(x, x)`；当为元组时，则对应为 `(x, y)`。
 - `stride`：步长，可选参数，标量或元组格式，默认为 `None`，即池化窗口的尺寸。
+- `padding`：填充，可以为标量或元组。当为标量时，对应为 `(x, x)`；当为元组时，则对应为 `(x, y)`。默认为0。
 - 神经元维度顺序仅支持 `CHW`。
+
+对于平均池化 `SpikingAvgPool2d`，它还有如下参数可配置：
+
+- `threshold`：平均池化的比较阈值，芯片需要通过神经元的阈值比较间接地实现除法。当不指定时，阈值为 $\text{round}(\text{kernel\_size}/2)$。池化窗口的输入做累加后与该阈值进行比较，可等价于平均池化的操作，即 $o_j=\sum^{k-1}_{i=0}x_{ij} >= \text{threshold}$，其中 $k$ 为池化窗口尺寸，$x_{ij}$ 为每个池化窗口内的输入特征图元素，$o_j$ 为第 $j$ 个输出特征图元素。
+
+### \*2D平均池化（与膜电位相关）
+
+这是 `SpikingAvgPool2d` 的另一种实现形式。`SpikingAvgPool2d` 在每个时间步上的运算**不会造成膜电位积累**（当未发放时），因此，可以说它与时间步无关。而该平均池化实现，当未发放时，**会造成膜电位积累**，因此与时间步相关。调用 `SpikingAvgPool2dWithV`，参数与前述 `SpikingAvgPool2d` 相同。
 
 ### 脉冲加、减
 
@@ -707,9 +663,11 @@ sub1 = pb.SpikingSub(n1, n2, overflow_strict=False, delay=1, tick_wait_start=2) 
 - `neuron_b`：第二个操作数。在减法中作被减数。
 - `overflow_strict`：是否严格检查运算结果溢出。如果启用，则在仿真中，当脉冲加、减运算结果溢出时将报错。默认为 `False`。
 
-### 转置
+### 2D/3D转置
 
-PAIBox提供了转置模块 `Transpose2d`，`Transpose3d`，用于实现二维、三维矩阵的转置。对于转置，需要**指定**输入神经元的尺寸、转置顺序（仅三维转置需要）。使用方法与逻辑运算模块相同：
+⚠️ 即将弃用
+
+PAIBox 提供了转置模块 `Transpose2d`，`Transpose3d`，用于实现二维、三维矩阵的转置。对于转置，需要**指定**输入神经元的尺寸、转置顺序（仅三维转置需要）。使用方法与逻辑运算模块相同：
 
 ```python
 n1 = pb.IF((32, 16), 1, 0, delay=1, tick_wait_start=1)
@@ -726,7 +684,7 @@ t3d = pb.Transpose3d(n2, axes=(1, 2, 0), tick_wait_start=2)
 
 ## 网络模型
 
-在PAIBox中，可以通过继承 `DynSysGroup`（或 `Network`）来实现，并在其中例化基础组件与功能模块，完成网络模型的构建。以一个简单的两层全连接网络为例：
+在 PAIBox 中，可以通过继承 `DynSysGroup`（或 `Network`）来实现，并在其中例化基础组件与功能模块，完成网络模型的构建。以一个简单的两层全连接网络为例：
 
 <p align="center">
     <img src="images/Guide-基础网络搭建-全连接网络示例.png" alt="基础网络搭建-全连接网络示例" style="zoom:50%">
@@ -753,7 +711,7 @@ class fcnet(pb.Network):
 
 ### 容器类型
 
-PAIBox提供 `NodeList`、`NodeDict` 容器类型，可批量化操作网络基本组件。例如，
+PAIBox 提供 `NodeList`、`NodeDict` 容器类型，可批量化操作网络基本组件。例如，
 
 ```python
 import paibox as pb
@@ -773,7 +731,7 @@ for i in range(5):
 有时网络中会重复出现类似的结构，这时先构建子网络，再多次例化复用是个不错的选择。
 
 ```python
-froom typing import Optional
+from typing import Optional
 import paibox as pb
 
 class ReusedStructure(pb.Network):
@@ -788,30 +746,28 @@ class ReusedStructure(pb.Network):
 
 class Net(pb.Network):
     def __init__(self, w1, w2):
+        super().__init__()
+
         self.inp1 = pb.InputProj(1, shape_out=(10,))
-        subnet1 = ReusedStructure(w1, tws=1, name="Reused_Struct_0")
-        subnet2 = ReusedStructure(w2, tws=3, name="Reused_Struct_1")
+        self.subnet1 = ReusedStructure(w1, tws=1, name="Reused_Struct_0")
+        self.subnet2 = ReusedStructure(w2, tws=3, name="Reused_Struct_1")
         self.fc1 = pb.FullConn(
             self.inp1,
-            subnet1.pre_n,
+            self.subnet1.pre_n,
             conn_type=pb.SynConnType.One2One,
         )
         self.fc2 = pb.FullConn(
-            subnet1.post_n,
-            subnet2.pre_n,
+            self.subnet1.post_n,
+            self.subnet2.pre_n,
             conn_type=pb.SynConnType.One2One,
         )
-
-        super().__init__(subnet1, subnet2) # Necessary!
 
 w1 = ...
 w2 = ...
 net = Net(w1, w2)
 ```
 
-上述示例代码中，我们先创建需复用的子网络 `ReusedStructure`，其结构为 `pre_n` -> `fc` -> `post_n`。而后，在父网络 `Net` 中实例化两个子网络 `subnet1`、 `subnet2`，并与父网络其他部分连接，此时网络结构为：`inp1` -> `fc1` -> `subnet1` -> `fc22` -> `subnet2`。最后，在为 `pb.Network` 初始化时，传入子网络 `subnet1`、 `subnet2`。由此，父网络 `Net` 才能发现子网络组件。如果想取到 `Net` 内的 `subnet1` 对象，可通过索引其名字 `Net["Reused_Struct_0"]` 取到。
-
-上述示例为一个二级嵌套网络，对于三级嵌套网络或更高（不推荐使用），可参考上述方式构建。
+上述示例代码中，我们先创建需复用的子网络 `ReusedStructure`，其结构为 `pre_n` -> `fc` -> `post_n`。而后，在父网络 `Net` 中实例化两个子网络 `subnet1`、 `subnet2`，并与父网络其他部分连接，此时网络结构为：`inp1` -> `fc1` -> `subnet1` -> `fc22` -> `subnet2`。上述示例为一个二级嵌套网络，对于三级或更高级嵌套网络，可参考上述方式构建。
 
 ## 仿真
 
@@ -871,7 +827,7 @@ sim.add_probe(probe2)
 
 在设置完探针后，可为每个输入节点单独输入数据，并进行仿真。仿真结束后可通过 `sim.data[...]` 读取探针监测的数据。
 
-PAIBox仿真器的仿真行为与实际硬件保持一致，在全局时间步 `T>0` 时，网络模型才开始工作。即在例化仿真器时若指定 `start_time_zero=False`，得到的仿真数据 `sim.data[probe1][0]` 为 `T=1` 时刻的模型输出。若指定 `start_time_zero=True`，则仿真数据 `sim.data[probe1][0]` 为 `T=0` 时刻的模型输出（初态）。
+PAIBox 仿真器的仿真行为与实际硬件保持一致，在全局时间步 `T>0` 时，网络模型才开始工作。即在例化仿真器时若指定 `start_time_zero=False`，得到的仿真数据 `sim.data[probe1][0]` 为 `T=1` 时刻的模型输出。若指定 `start_time_zero=True`，则仿真数据 `sim.data[probe1][0]` 为 `T=0` 时刻的模型输出（初态）。
 
 ```python
 # 准备输入数据
@@ -898,15 +854,18 @@ sim.reset()
 
 ## 编译、映射与导出
 
-模型映射将完成网络拓扑解析、映射、分配路由坐标、生成配置文件或帧数据，并最终导出为 `.bin` 或 `.npy` 格式交换文件等一系列工作。
+模型映射将完成网络拓扑解析、分割、路由坐标分配、配置信息与帧文件导出等一系列工作。
 
-例化 `Mapper`，传入所构建的网络模型，进行编译，最后导出帧即可。
+例化 `Mapper`，传入所构建的网络模型，编译，最后导出。
 
 ```python
 mapper = pb.Mapper()
 mapper.build(fcnet)
 graph_info = mapper.compile(weight_bit_optimization=True, grouping_optim_target="both")
-mapper.export(write_to_file=True, fp="./debug/", format="bin", split_by_coordinate=False, local_chip_addr=(0, 0), export_core_params=False)
+mapper.export(write_to_file=True, fp="./debug/", format="bin", split_by_coord=False, export_core_params=False, use_hw_sim=True)
+
+graph_info.n_core_required
+>>> 999
 
 # Clear all the results
 mapper.clear()
@@ -914,8 +873,8 @@ mapper.clear()
 
 其中，编译时有如下参数可指定：
 
-- `weight_bit_optimization`: 是否对权重精度进行优化处理。这将使得声明时为 INT8 的权重根据实际值当作更小的精度处理（当权重的值均在 [-8, 7] 之间，则可当作 INT4 进行处理）。默认由后端配置项内对应**编译选项**指定（默认开启）。
-- `grouping_optim_target`：指定神经元分组的优化目标，可以为 `"latency"`，`"core"` 或 `"both"`，分别代表以延时/吞吐率、占用核资源为优化目标、或二者兼顾。默认由后端配置项内对应**编译选项**指定（默认为 `both`）。
+- `weight_bit_optimization`: 是否对权重精度进行优化处理。这将使得声明时为 INT8 的权重根据实际值当作更小的精度处理（当权重的值均在 [-8, 7] 之间，则可当作 INT4 进行处理）。默认开启。
+- `grouping_optim_target`：指定神经元分组的优化目标，可以为 `"latency"`，`"core"` 或 `"both"`，分别代表以延时/吞吐率、占用核资源为优化目标、或二者兼顾。默认 `both`。
 - 同时，该方法将返回字典形式的编译后网络的信息。
 
 导出时有如下参数可指定：
@@ -923,32 +882,35 @@ mapper.clear()
 - `write_to_file`: 是否将配置帧导出为文件。默认为 `True`。
 - `fp`：导出目录。若未指定，则默认为后端配置选项 `build_directory` 所设置的目录（当前工作目录）。
 - `format`：导出交换文件格式，可以为 `bin`、`npy` 或 `txt`。默认为 `bin`。
-- `split_by_coordinate`：是否将配置帧以每个核坐标进行分割，由此生成的配置帧文件命名为"config_core1"、"config_core2"等。默认为 `False`，即最终导出为一个文件。
-- `local_chip_addr`：本地芯片坐标，元组格式表示。默认为后端配置项 `local_chip_addr` 所设置的默认值。
-- `export_core_params`: 是否导出实际使用核参数至json文件，以直观显示实际使用核的配置信息。默认为 `False`。
+- `split_by_coord`：是否将配置帧以每个核坐标进行分割，由此生成的配置帧文件命名形如"config_core1"、"config_core2"。默认为 `False`，即最终导出为一个文件。
+- `export_core_params`：是否导出实际使用核参数至 json 文件，以直观显示实际使用核的配置信息。默认为 `False`。
+- `use_hw_sim`：是否使用硬件仿真器。若使用，将额外导出 `bin` 格式的配置帧文件。
 
 同时，该方法将返回模型的配置项字典 `GraphInfo`，包括：
 
 - `input`：输入节点信息字典。
 - `output`：输出目的地信息字典。
 - `memebers`：中间层所在物理核的配置项字典。
-- `inherent_timestep`：网络模型的最长时间步。
-- `n_core_required`：网络模型需要的物理核数目。
+- `inherent_timestep`：网络的最长时间步。
+- `n_core_required`：网络**需要**的物理核数目。
+- `n_core_occupied`：网络**实际占用**的物理核数目。
 - `extras`：其他额外的网络信息字典，例如，编译后的网络名称。
 
 ### 后端配置项
 
-与后端相关的配置项由 `BACKEND_CONFIG` 统一保存与访问，例如上述**编译选项**、`build_directory`、`local_chip_addr` 等。如下所示，对常用的配置项进行读取与修改：
+与后端相关的配置项由 `BACKEND_CONFIG` 统一保存与访问，例如 `build_directory`、`target_chip_addr` 等。如下所示，对常用的配置项进行读取与修改：
 
-1. 本地芯片地址 `local_chip_addr`
+1. 本地芯片地址 `target_chip_addr`，支持**多芯片配置**。
 
    ```python
    # Read
-   BACKEND_CONFIG.local_chip_addr
-   >>> Coord(0, 0)
+   BACKEND_CONFIG.target_chip_addr
+   >>> [Coord(0, 0)]
 
-   # Modify
-   BACKEND_CONFIG.local_chip_addr = (1, 1)
+   # Single chip
+   BACKEND_CONFIG.target_chip_addr = (1, 1)
+   # Multiple chips
+   BACKEND_CONFIG.target_chip_addr = [(0, 0), (0, 1), (1, 0)]
    ```
 
 2. 输出芯片地址（测试芯片地址） `output_chip_addr`
@@ -965,6 +927,7 @@ mapper.clear()
    # or
    BACKEND_CONFIG.test_chip_addr = (2, 0)
    ```
+   ⚠️ 请确保输出芯片地址不与本地芯片地址重叠。
 
 3. 编译后配置信息等文件输出目录路径 `output_dir`，默认为用户当前工作目录
 
@@ -974,16 +937,5 @@ mapper.clear()
    >>> Path.cwd() # Default is your current working directory
 
    # Modify
-   BACKEND_CONFIG.output_dir = "path/to/myoutput"
-   ```
-
-4. 编译选项
-
-   ```python
-   # Set cflag for enabling weight precision optimization
-   set_cflag(enable_wp_opt=True, cflag="This is a cflag.")
-
-   # Read
-   BACKEND_CONFIG.cflag
-   >>> {"enable_wp_opt": True, "cflag": "This is a cflag."}
+   BACKEND_CONFIG.output_dir = "path/to/my/output"
    ```

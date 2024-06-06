@@ -1,6 +1,7 @@
+from collections.abc import Iterable
 from functools import partial
 from itertools import repeat
-from typing import Any, Iterable
+from typing import Any
 
 import numpy as np
 from numpy.typing import NDArray
@@ -159,6 +160,7 @@ def _conv2d_unroll(
     nih, niw = in_shape
     nin_size = nih * niw
     w_unrolled = np.zeros((cin * nin_size, cout * out_size), dtype=kernel.dtype)
+
     for i in range(cin):
         for j in range(nih):
             w_unrolled[i * nin_size + j * niw : i * nin_size + j * niw + niw, :] = (
@@ -193,16 +195,17 @@ def _pool2d_kernel_unroll(
     out_shape: Size2Type,
     ksize: Size2Type,
     stride: Size2Type,
-    # padding: Size2Type,
+    padding: Size2Type,
     # fm_order: str,
 ) -> WeightType:
     kh, kw = ksize
-    ih, iw = in_shape
+    ih = in_shape[0] + 2 * padding[0]
+    iw = in_shape[1] + 2 * padding[1]
     oh, ow = out_shape
     in_size = ih * iw
     out_size = oh * ow
 
-    w_unrolled = np.zeros((channels * in_size, channels * out_size), dtype=np.bool_)
+    w_unrolled_np = np.zeros((channels * in_size, channels * out_size), dtype=np.bool_)
 
     for i in range(oh):
         for j in range(ow):
@@ -216,7 +219,25 @@ def _pool2d_kernel_unroll(
             temp = zeros_image.reshape((channels * ih, channels, iw)).transpose(1, 0, 2)
 
             for o_ch in range(channels):
-                w_unrolled[:, i * ow + j + o_ch * oh * ow] = temp[o_ch].ravel()
+                w_unrolled_np[:, i * ow + j + o_ch * oh * ow] = temp[o_ch].ravel()
+
+    nih, niw = in_shape
+    nin_size = nih * niw
+    w_unrolled = np.zeros((channels * nin_size, channels * out_size), dtype=np.bool_)
+
+    for i in range(channels):
+        for j in range(nih):
+            w_unrolled[i * nin_size + j * niw : i * nin_size + j * niw + niw, :] = (
+                w_unrolled_np[
+                    i * in_size
+                    + (padding[0] + j) * iw
+                    + padding[1] : i * in_size
+                    + (padding[0] + j) * iw
+                    + padding[1]
+                    + niw,
+                    :,
+                ]
+            )
 
     return w_unrolled
 
@@ -228,6 +249,7 @@ def _func_pool2d(
     stride: Size2Type,
     padding: Size2Type,
     type: str,
+    threshold: int,
 ) -> SpikeType:
     xcin, xh, xw = x_chw.shape
     kh, kw = ksize
@@ -265,8 +287,7 @@ def _func_pool2d(
                     )
 
     if type == "avg":
-        thres = kh * kw // 2 + 1
-        return out >= thres
+        return out >= threshold
     else:
         return out.astype(np.bool_)
 

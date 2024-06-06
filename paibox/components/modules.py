@@ -1,21 +1,34 @@
+import sys
+import typing
 from collections import deque
+from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import ClassVar, List, Optional, Sequence, Tuple, Union
+from typing import ClassVar, Optional, Union
 
 import numpy as np
 from paicorelib import TM, HwConfig
-from typing_extensions import TypeAlias
 
-from paibox.base import NeuDyn, SynSys
+from paibox.base import NeuDyn
 from paibox.exceptions import NotSupportedError, RegisterError, ShapeError
 from paibox.types import SpikeType, VoltageType
 from paibox.utils import check_elem_unique, shape2num
 
 from .projection import InputProj
 
+if sys.version_info >= (3, 10):
+    from typing import TypeAlias
+else:
+    from typing_extensions import TypeAlias
+
+if typing.TYPE_CHECKING:
+    from paibox.network import DynSysGroup
+
+    from .synapses import FullConnectedSyn
+
 __all__ = ["BuildingModule"]
 
-MultiInputsType: TypeAlias = List[SpikeType]  # Type of inputs of `NeuModule`.
+MultiInputsType: TypeAlias = list[SpikeType]  # Type of inputs of `NeuModule`.
+BuiltComponentType: TypeAlias = list[Union["FullConnectedSyn", NeuDyn]]
 
 
 @dataclass
@@ -24,9 +37,9 @@ class ModuleIntf:
         gets input and where it outputs. This information will be used when building the module.
     """
 
-    operands: List[Union[NeuDyn, InputProj]] = field(default_factory=list)
+    operands: list[Union[NeuDyn, InputProj]] = field(default_factory=list)
     """TODO can operands be a `NeuModule`?"""
-    output: List[SynSys] = field(default_factory=list)
+    output: list["FullConnectedSyn"] = field(default_factory=list)
     """A list of synapses."""
 
     @property
@@ -41,7 +54,7 @@ class ModuleIntf:
 class BuildingModule:
     module_intf: ModuleIntf
 
-    def build(self, *args, **build_options) -> None:
+    def build(self, network: "DynSysGroup", **build_options) -> BuiltComponentType:
         """Construct the actual basic components and add to the network. Called in the backend ONLY."""
         raise NotImplementedError
 
@@ -53,11 +66,11 @@ class BuildingModule:
         """Remove a operand from the interface."""
         self.module_intf.operands.remove(op)
 
-    def register_output(self, syn: SynSys) -> None:
+    def register_output(self, syn: "FullConnectedSyn") -> None:
         """Register the output synapses."""
         self.module_intf.output.append(syn)
 
-    def unregister_output(self, syn: SynSys) -> None:
+    def unregister_output(self, syn: "FullConnectedSyn") -> None:
         """Remove an output synapses."""
         self.module_intf.output.remove(syn)
 
@@ -71,6 +84,8 @@ class BuildingModule:
 
 
 class NeuModule(NeuDyn, BuildingModule):
+    __gh_build_ignore__ = True
+
     n_return: ClassVar[int]
     """#N of outputs."""
     inherent_delay: int = 0
@@ -105,8 +120,11 @@ class NeuModule(NeuDyn, BuildingModule):
         """Function used to describe generating output spike of the module."""
         raise NotImplementedError
 
+    def is_outputing(self) -> bool:
+        return (self.timestamp - self.inherent_delay) >= 0
+
     @property
-    def source(self) -> List[Union[NeuDyn, InputProj]]:
+    def source(self) -> list[Union[NeuDyn, InputProj]]:
         return self.module_intf.operands
 
     @property
@@ -131,7 +149,7 @@ class FunctionalModule(NeuModule):
     def __init__(
         self,
         *operands: Union[NeuDyn, InputProj],
-        shape_out: Tuple[int, ...],
+        shape_out: tuple[int, ...],
         keep_shape: bool,
         name: Optional[str] = None,
         **kwargs,
@@ -184,7 +202,7 @@ class FunctionalModule(NeuModule):
             "synin_deque", deque(_init_synin, maxlen=1 + self.inherent_delay)
         )
 
-    def get_inputs(self) -> MultiInputsType:
+    def get_inputs(self) -> None:
         synin = []
 
         for op in self.module_intf.operands:
@@ -201,18 +219,20 @@ class FunctionalModule(NeuModule):
 
         self.synin_deque.append(synin)  # Append to the right of the deque.
 
-        return self.synin_deque.popleft()  # Pop the left of the deque.
-
     def update(self, *args, **kwargs) -> Optional[SpikeType]:
         if not self.is_working():
             self._inner_spike = np.zeros((self.num_out,), dtype=np.bool_)
             return None
 
-        synin = self.get_inputs()
-        self._inner_spike = self.spike_func(*synin).ravel()
+        self.get_inputs()
 
-        idx = (self.timestamp + self.delay_relative - 1) % HwConfig.N_TIMESLOT_MAX
-        self.delay_registers[idx] = self._inner_spike.copy()
+        if self.is_outputing():
+            synin = self.synin_deque.popleft()  # Pop the left of the deque.
+            self._inner_spike = self.spike_func(*synin).ravel()
+            idx = (
+                self.timestamp - self.inherent_delay + self.delay_relative - 1
+            ) % HwConfig.N_TIMESLOT_MAX
+            self.delay_registers[idx] = self._inner_spike.copy()
 
         return self._inner_spike
 
@@ -222,7 +242,7 @@ class FunctionalModule(NeuModule):
         raise NotImplementedError
 
     @property
-    def shape_out(self) -> Tuple[int, ...]:
+    def shape_out(self) -> tuple[int, ...]:
         return self._shape_out
 
     @property
@@ -245,6 +265,10 @@ class FunctionalModule(NeuModule):
     def feature_map(self) -> SpikeType:
         return self._inner_spike.reshape(self.varshape)
 
+    @property
+    def varshape(self) -> tuple[int, ...]:
+        return self.shape_out if self.keep_shape else (self.num_out,)
+
 
 class FunctionalModule2to1(FunctionalModule):
     """Functional module with two operands."""
@@ -262,29 +286,17 @@ class FunctionalModule2to1(FunctionalModule):
                 f"two operands must have the same size: {neuron_a.num_out} != {neuron_b.num_out}."
             )
 
-        if keep_shape:
-            if neuron_a.shape_out != neuron_b.shape_out:
-                raise ShapeError(
-                    f"two operands must have the same shape: {neuron_a.shape_out} != {neuron_b.shape_out}.\n"
-                    f"When two operands have different shapes, set 'keep_shape=False' and the output will "
-                    f"not retain shape information."
-                )
-
-            _shape_out = neuron_a.shape_out
-        else:
-            _shape_out = (neuron_a.num_out,)
-
         super().__init__(
             neuron_a,
             neuron_b,
-            shape_out=_shape_out,
+            shape_out=_shape_check2(neuron_a, neuron_b, keep_shape),
             keep_shape=keep_shape,
             name=name,
             **kwargs,
         )
 
     @property
-    def varshape(self) -> Tuple[int, ...]:
+    def varshape(self) -> tuple[int, ...]:
         return self.shape_out if self.keep_shape else (self.num_out,)
 
 
@@ -294,7 +306,7 @@ class TransposeModule(FunctionalModule):
     def __init__(
         self,
         neuron: Union[NeuDyn, InputProj],
-        shape_in: Tuple[int, ...],
+        shape_in: tuple[int, ...],
         axes: Optional[Sequence[int]] = None,
         keep_shape: bool = True,
         name: Optional[str] = None,
@@ -323,27 +335,28 @@ class TransposeModule(FunctionalModule):
         )
 
     @property
-    def shape_in(self) -> Tuple[int, ...]:
+    def shape_in(self) -> tuple[int, ...]:
         return self._shape_in
 
 
-class FunctionalModule2to1WithV(FunctionalModule2to1):
+class FunctionalModuleWithV(FunctionalModule):
     """Functional module with two operands.
 
-    NOTE: Compared to `FunctionalModule2to1`, The difference is that we also take the \
-        membrane potential voltage(vjt) into consideration.
+    NOTE: Compared to `FunctionalModule`, the difference is that it takes the \
+        membrane potential voltage into consideration.
     """
 
     def __init__(
         self,
-        neuron_a: Union[NeuDyn, InputProj],
-        neuron_b: Union[NeuDyn, InputProj],
+        *operands: Union[NeuDyn, InputProj],
+        shape_out: tuple[int, ...],
         keep_shape: bool = False,
         name: Optional[str] = None,
         **kwargs,
     ) -> None:
-        super().__init__(neuron_a, neuron_b, keep_shape, name, **kwargs)
-
+        super().__init__(
+            *operands, shape_out=shape_out, keep_shape=keep_shape, name=name, **kwargs
+        )
         self.set_memory("_vjt", np.zeros((self.num_out,), dtype=np.int32))
         self.thres_mode = np.full((self.num_out,), TM.NOT_EXCEEDED, dtype=np.uint8)
 
@@ -356,16 +369,60 @@ class FunctionalModule2to1WithV(FunctionalModule2to1):
             self._inner_spike = np.zeros((self.num_out,), dtype=np.bool_)
             return None
 
-        synin = self.get_inputs()
-        incoming_v = self.synaptic_integr(*synin, self._vjt)
-        _is, self._vjt = self.spike_func(incoming_v)
-        self._inner_spike = _is.ravel()
+        self.get_inputs()
 
-        idx = (self.timestamp + self.delay_relative - 1) % HwConfig.N_TIMESLOT_MAX
-        self.delay_registers[idx] = self._inner_spike.copy()
+        if self.is_outputing():
+            synin = self.synin_deque.popleft()  # Pop the left of the deque.
+            incoming_v = self.synaptic_integr(*synin, self._vjt)
+            _is, self._vjt = self.spike_func(incoming_v)
+            self._inner_spike = _is.ravel()
+
+            idx = (
+                self.timestamp - self.inherent_delay + self.delay_relative - 1
+            ) % HwConfig.N_TIMESLOT_MAX
+            self.delay_registers[idx] = self._inner_spike.copy()
 
         return self._inner_spike
 
     @property
     def voltage(self) -> VoltageType:
         return self._vjt.reshape(self.varshape)
+
+
+class FunctionalModule2to1WithV(FunctionalModuleWithV):
+    def __init__(
+        self,
+        neuron_a: Union[NeuDyn, InputProj],
+        neuron_b: Union[NeuDyn, InputProj],
+        keep_shape: bool = False,
+        name: Optional[str] = None,
+        **kwargs,
+    ) -> None:
+        super().__init__(
+            neuron_a,
+            neuron_b,
+            shape_out=_shape_check2(neuron_a, neuron_b, keep_shape),
+            keep_shape=keep_shape,
+            name=name,
+            **kwargs,
+        )
+
+
+def _shape_check2(
+    neuron_a: Union[NeuDyn, InputProj],
+    neuron_b: Union[NeuDyn, InputProj],
+    keep_shape: bool,
+) -> tuple[int, ...]:
+    if keep_shape:
+        if neuron_a.shape_out != neuron_b.shape_out:
+            raise ShapeError(
+                f"two operands must have the same shape: {neuron_a.shape_out} != {neuron_b.shape_out}. "
+                f"When two operands have different shapes, set 'keep_shape=False' and the output will "
+                f"not retain shape information."
+            )
+
+        shape_out = neuron_a.shape_out
+    else:
+        shape_out = (neuron_a.num_out,)
+
+    return shape_out

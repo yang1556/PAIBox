@@ -1,4 +1,5 @@
-from typing import Any, Iterable, List, Optional, Sequence, Tuple, Union
+from collections.abc import Iterable, Sequence
+from typing import Any, Optional
 
 import numpy as np
 
@@ -35,6 +36,18 @@ def count_unique_elem(obj: Iterable[Any]) -> int:
     return len(seen)
 
 
+def merge_unique_ordered(list1: list[Any], list2: list[Any]) -> list[Any]:
+    seen = set()
+    result = []
+
+    for item in list1 + list2:
+        if item not in seen:
+            seen.add(item)
+            result.append(item)
+
+    return result
+
+
 def check_attr_same(obj: Sequence[Any], attr: str) -> bool:
     return all(getattr(obj[0], attr) == getattr(item, attr) for item in obj)
 
@@ -60,6 +73,8 @@ def shape2num(shape: Shape) -> int:
     """Convert a shape to a number"""
     if isinstance(shape, int):
         return shape
+    elif isinstance(shape, np.ndarray):
+        return int(np.prod(shape))
     else:
         a = 1
         for b in shape:
@@ -68,12 +83,12 @@ def shape2num(shape: Shape) -> int:
         return a
 
 
-def as_shape(x, min_dim: int = 0) -> Tuple[int, ...]:
+def as_shape(x, min_dim: int = 0) -> tuple[int, ...]:
     """Return a tuple if `x` is iterable or `(x,)` if `x` is integer."""
     if is_integer(x):
-        _shape = (x,)
+        _shape = (int(x),)
     elif is_iterable(x):
-        _shape = tuple(x)
+        _shape = tuple(int(e) for e in x)
     else:
         raise ValueError(f"{x} cannot be safely converted to a shape.")
 
@@ -118,82 +133,40 @@ def fn_sgn(a, b) -> int:
     return 1 if a > b else -1 if a < b else 0
 
 
-def bin_split(x: int, pos: int, high_mask: Optional[int] = None) -> Tuple[int, int]:
-    """Split an integer, return the high and low part.
-
-    Argument:
-        - x: the integer
-        - pos: the position (LSB) to split the binary.
-        - high_mask: mask for the high part. Optional.
-
-    Example::
-
-        >>> bin_split(0b1100001001, 3)
-        97(0b1100001), 1
-    """
-    low = x & ((1 << pos) - 1)
-
-    if isinstance(high_mask, int):
-        high = (x >> pos) & high_mask
+def typical_round(number: float) -> int:
+    if number - int(number) < 0.5:
+        return int(number)
     else:
-        high = x >> pos
-
-    return high, low
+        return int(number) + 1
 
 
-def bin_combine(high: int, low: int, pos: int) -> int:
-    """Combine two integers, return the result.
+def arg_check_pos(arg: int, desc: Optional[str] = None) -> int:
+    _desc = "value" if desc is None else f"{desc}"
+    if arg < 1:
+        raise ValueError(f"{_desc} must be positive, but got {arg}.")
 
-    Argument:
-        - high: the integer on the high bit.
-        - low: the integer on the low bit.
-        - pos: the combination bit if provided. Must be equal or greater than `low.bit_length()`.
-
-    Example::
-
-        >>> bin_combine(0b11000, 0b101, 5)
-        773(0b11000_00101)
-    """
-    if pos < 0:
-        raise ValueError("position must be greater than 0")
-
-    if low > 0 and pos < low.bit_length():
-        raise ValueError(
-            f"Postion of combination must be greater than the bit length of low({low.bit_length()})"
-        )
-
-    return (high << pos) + low
+    return arg
 
 
-def bin_combine_x(*components: int, pos: Union[int, List[int], Tuple[int, ...]]) -> int:
-    """Combine more than two integers, return the result.
+def arg_check_non_pos(arg: int, desc: Optional[str] = None) -> int:
+    _desc = "value" if desc is None else f"{desc}"
+    if arg > 0:
+        raise ValueError(f"{_desc} must be non-positive, but got {arg}.")
 
-    Argument:
-        - components: the list of integers to be combined.
-        - pos: the combination bit(s) if provided. Every bit must be equal or greater than `low.bit_length()`.
+    return arg
 
-    Example::
 
-        >>> bin_combine_x(0b11000, 0b101, 0b1011, pos=[10, 5])
-        24747(0b11000_00101_01011)
-    """
-    if isinstance(pos, (list, tuple)):
-        if len(components) != len(pos) + 1:
-            raise ValueError(
-                f"Length of components and positions illegal: {len(components)}, {len(pos)}"
-            )
-    else:
-        if len(components) != 2:
-            raise ValueError(
-                f"Length of components must be 2: {len(components)} when position is an integer."
-            )
+def arg_check_neg(arg: int, desc: Optional[str] = None) -> int:
+    _desc = "value" if desc is None else f"{desc}"
+    if arg > -1:
+        raise ValueError(f"{_desc} must be negative, but got {arg}.")
 
-        return bin_combine(*components, pos=pos)
+    return arg
 
-    result = components[-1]
 
-    # Traverse every position from the end to the start
-    for i in range(len(pos) - 1, -1, -1):
-        result = bin_combine(components[i], result, pos[i])
+def arg_check_non_neg(arg: int, desc: Optional[str] = None) -> int:
+    _desc = "value" if desc is None else f"{desc}"
+    if arg < 0:
+        raise ValueError(f"{_desc} must be non-negative, but got {arg}.")
 
-    return result
+    return arg

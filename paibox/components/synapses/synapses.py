@@ -1,9 +1,10 @@
-import warnings
+import sys
 from typing import Optional, Union
 
 import numpy as np
 
 from paibox.base import NeuDyn
+from paibox.exceptions import PAIBoxDeprecationWarning
 from paibox.types import DataArrayType
 
 from ..neuron import Neuron
@@ -17,20 +18,32 @@ from .base import (
 )
 from .conv_types import _KOrder3d, _KOrder4d, _Size1Type, _Size2Type
 from .conv_utils import _pair, _single
-from .transforms import GeneralConnType as GConnType
+from .transforms import ConnType
 
-__all__ = ["FullConn", "Conv1d", "Conv2d", "ConvTranspose1d", "ConvTranspose2d"]
+if sys.version_info >= (3, 13):
+    from warnings import deprecated
+else:
+    from typing_extensions import deprecated
+
+__all__ = [
+    "FullConn",
+    "MatMul2d",
+    "Conv1d",
+    "Conv2d",
+    "ConvTranspose1d",
+    "ConvTranspose2d",
+]
 
 
 class FullConn(FullConnSyn):
     def __init__(
-            self,
-            source: Union[NeuDyn, InputProj],
-            dest: NeuDyn,
-            weights: DataArrayType = 1,
-            *,
-            conn_type: GConnType = GConnType.MatConn,
-            name: Optional[str] = None,
+        self,
+        source: Union[NeuDyn, InputProj],
+        dest: NeuDyn,
+        weights: DataArrayType = 1,
+        *,
+        conn_type: ConnType = ConnType.All2All,
+        name: Optional[str] = None,
     ) -> None:
         """Full-connected synapses.
 
@@ -41,25 +54,43 @@ class FullConn(FullConnSyn):
             - conn_type: the type of connection.
             - name: name of the full-connected synapses. Optional.
         """
-        super().__init__(source, dest, weights, conn_type, name)
+        super().__init__(source, dest, weights, conn_type, name=name)
 
 
-class NoDecay(FullConn):
+@deprecated(
+    "'NoDecay' will be removed in a future version. Use 'FullConn' instead.",
+    category=PAIBoxDeprecationWarning,
+)
+class NoDecay(FullConnSyn):
     def __init__(
-            self,
-            source: Union[NeuDyn, InputProj],
-            dest: NeuDyn,
-            weights: DataArrayType = 1,
-            *,
-            conn_type: GConnType = GConnType.MatConn,
-            name: Optional[str] = None,
+        self,
+        source: Union[NeuDyn, InputProj],
+        dest: NeuDyn,
+        weights: DataArrayType = 1,
+        *,
+        conn_type: ConnType = ConnType.All2All,
+        name: Optional[str] = None,
     ) -> None:
-        warnings.warn(
-            "'NoDecay' will be deprecated in future versions. Use 'FullConn' instead.",
-            DeprecationWarning,
-        )
+        super().__init__(source, dest, weights, conn_type, name=name)
 
-        super().__init__(source, dest, weights, conn_type=conn_type, name=name)
+
+class MatMul2d(FullConnSyn):
+    def __init__(
+        self,
+        source: Union[NeuDyn, InputProj],
+        dest: NeuDyn,
+        weights: np.ndarray,
+        name: Optional[str] = None,
+    ) -> None:
+        """MatMul2d synapses.
+
+        Args:
+            - source: source neuron.
+            - dest: destination neuron.
+            - weights: weights of the synapses.
+            - name: name of the matmul2d. Optional.
+        """
+        super().__init__(source, dest, weights, ConnType.MatConn, name)
 
 
 class Conv1d(Conv1dSyn):
@@ -93,7 +124,14 @@ class Conv1d(Conv1dSyn):
             raise ValueError(f"kernel order must be 'OIL' or 'IOL'.")
 
         super().__init__(
-            source, dest, kernel, _single(stride), _single(padding), kernel_order, name
+            source,
+            dest,
+            kernel,
+            _single(stride),
+            _single(padding),
+            _single(1),
+            kernel_order,
+            name,
         )
 
 
@@ -128,7 +166,14 @@ class Conv2d(Conv2dSyn):
             raise ValueError(f"kernel order must be 'OIHW' or 'IOHW'.")
 
         super().__init__(
-            source, dest, kernel, _pair(stride), _pair(padding), kernel_order, name
+            source,
+            dest,
+            kernel,
+            _pair(stride),
+            _pair(padding),
+            _pair(1),
+            kernel_order,
+            name,
         )
 
 
@@ -172,6 +217,7 @@ class ConvTranspose1d(ConvTranspose1dSyn):
             kernel,
             _single(stride),
             _single(padding),
+            _single(1),
             _single(output_padding),
             kernel_order,
             name,
@@ -221,6 +267,7 @@ class ConvTranspose2d(ConvTranspose2dSyn):
             kernel,
             _pair(stride),
             _pair(padding),
+            _pair(1),
             _pair(output_padding),
             kernel_order,
             name,
