@@ -11,7 +11,7 @@ try:
 except:
     LEAK_V_BIT_MAX = 30  # 1 + 29
 
-__all__ = ["IF", "LIF", "TonicSpiking", "PhasicSpiking", "SpikingRelu"]
+__all__ = ["IF", "LIF", "TonicSpiking", "PhasicSpiking", "SpikingRelu", "Always1Neuron"]
 
 LEAK_V_MAX = 1 << (LEAK_V_BIT_MAX - 1) - 1
 

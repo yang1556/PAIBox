@@ -179,15 +179,22 @@ def _conv2d_unroll(
 
 
 def _conv2d_halfroll(
-        in_h: int,
-        n: int,
+        idx: int,
+        in_shape: Size2Type,
         out_shape: Size2Type,
         kernel: WeightType,
         stride: Size2Type,
         padding: Size2Type,
 ) -> WeightType:
-
-    return
+    cout, cin, kh, kw = kernel.shape
+    ih = in_shape[1] + 2 * padding[0]
+    o_ch, oh = out_shape
+    w_np = np.zeros((cin * ih, cout * oh), dtype=kernel.dtype)
+    for i in range(cout):
+        for j in range(cin):
+            for k in range(oh):
+                w_np[j*ih+k:j*ih+k+kh, i*oh+k] = kernel[i, j, :, idx]
+    return w_np
 
 def _pool2d_kernel_unroll(
     channels: int,
