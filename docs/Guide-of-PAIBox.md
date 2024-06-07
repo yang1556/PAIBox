@@ -162,6 +162,7 @@ s1= pb.FullConn(source=n1, dest=n2, weights=weight1, conn_type=pb.SynConnType.Al
   ```
 
   其权重以标量的形式储存。
+
 - 数组：尺寸要求为 `(N2,)`，可以自定义每组对应神经元之间的连接权重。如下例所示，设置 `weights` 为 `[1, 2, 3, 4, 5]`，
 
   ```python
@@ -861,10 +862,10 @@ sim.reset()
 ```python
 mapper = pb.Mapper()
 mapper.build(fcnet)
-graph_info = mapper.compile(weight_bit_optimization=True, grouping_optim_target="both")
+graph_info = mapper.compile(core_estimate_only==False, weight_bit_optimization=True, grouping_optim_target="both")
 mapper.export(write_to_file=True, fp="./debug/", format="bin", split_by_coord=False, export_core_params=False, use_hw_sim=True)
 
-graph_info.n_core_required
+print(graph_info.n_core_required)
 >>> 999
 
 # Clear all the results
@@ -873,6 +874,7 @@ mapper.clear()
 
 其中，编译时有如下参数可指定：
 
+- `core_estimate_only`：仅导出预估所需核数目，不进行后续部署。默认关闭。
 - `weight_bit_optimization`: 是否对权重精度进行优化处理。这将使得声明时为 INT8 的权重根据实际值当作更小的精度处理（当权重的值均在 [-8, 7] 之间，则可当作 INT4 进行处理）。默认开启。
 - `grouping_optim_target`：指定神经元分组的优化目标，可以为 `"latency"`，`"core"` 或 `"both"`，分别代表以延时/吞吐率、占用核资源为优化目标、或二者兼顾。默认 `both`。
 - 同时，该方法将返回字典形式的编译后网络的信息。
@@ -927,6 +929,7 @@ mapper.clear()
    # or
    BACKEND_CONFIG.test_chip_addr = (2, 0)
    ```
+
    ⚠️ 请确保输出芯片地址不与本地芯片地址重叠。
 
 3. 编译后配置信息等文件输出目录路径 `output_dir`，默认为用户当前工作目录
