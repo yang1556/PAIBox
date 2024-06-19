@@ -404,7 +404,6 @@ class Conv2dForward(Transform):
 class Conv2dHalfForward(Transform):
     def __init__(
         self,
-        idx: int,
         in_shape: Size2Type,
         out_shape: Size2Type,
         kernel: np.ndarray,
@@ -412,7 +411,6 @@ class Conv2dHalfForward(Transform):
         padding: Size2Type,
         # fm_order: _Order3d,
     ) -> None:
-        self.idx = idx
         self.in_shape = in_shape
         self.out_shape = out_shape
         self.stride = stride
@@ -423,12 +421,16 @@ class Conv2dHalfForward(Transform):
         super().__init__(kernel)
 
     def __call__(self, x: SpikeType, *args, **kwargs) -> SynOutType:
-        return
+        # print(x)
+        # print(self.connectivity)
+        # print(x@self.connectivity)
+        return x @ self.connectivity
+
 
     @property
     def connectivity(self):
         return _conv2d_halfroll(
-            self.idx, self.in_shape, self.out_shape, self.kernel, self.stride, self.padding
+            self.in_shape, self.out_shape, self.kernel, self.stride, self.padding
         )
 
 

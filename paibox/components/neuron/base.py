@@ -106,7 +106,6 @@ class MetaNeuron:
                 _v = incoming_v.sum(axis=1, dtype=np.int32)
             else:
                 _v = incoming_v
-
         v_charged = np.add(vjt_pre, _v, dtype=np.int32)
 
         return vjt_overflow(v_charged, strict)  # Handle with overflow here
@@ -466,11 +465,11 @@ class Neuron(MetaNeuron, NeuDyn):
         # The neuron is going to work.
         if x is None:
             x = self.sum_inputs()
-
+        if self.name == "n_1":
+            print(self.name, f"incoming_v: {x}")
         self._inner_spike, self._vjt, self._debug_thres_mode = super().update(
             x, self._vjt
         )
-
         idx = (self.timestamp + self.delay_relative - 1) % HwConfig.N_TIMESLOT_MAX
         self.delay_registers[idx] = self._inner_spike.copy()
 
@@ -517,15 +516,22 @@ class Neuron(MetaNeuron, NeuDyn):
         return self.__deepcopy__()
 
     def shape_change(self, new_shape: Shape) -> None:
+        #print(self.name,"shape change")
         self._n_neuron = shape2num(new_shape)
         self._shape = as_shape(new_shape)
         self._vjt = self.init_param(0).astype(np.int32)
+        self.set_reset_value("_vjt", self._vjt)
         self._inner_spike = self.init_param(0).astype(np.bool_)
+        self.set_reset_value("_inner_spike", self._inner_spike)
         self.vj = self.init_param(0).astype(np.int32)
+        self.set_reset_value("vj", self.vj)
         self.y = self.init_param(0).astype(np.int32)
+        self.set_reset_value("y", self.y)
         self.delay_registers = np.zeros(
                 (HwConfig.N_TIMESLOT_MAX,) + self._inner_spike.shape, dtype=np.bool_
             )
+        self.set_reset_value("delay_registers", self.delay_registers)
+
         return
 
     @property

@@ -1001,7 +1001,7 @@ class Delay_FullConn(FunctionalModule):
                 self.module_intf.operands[0],
                 delay_neurons[i],
                 weights=_delay_mapping(delay_shape[1], delay_shape[0], 1),
-                conn_type=ConnType.MatConn,
+                conn_type=ConnType.All2All,
                 name=f"s{i}_delay",
             )
             #w = np.zeros((neuron.num_out, self.module_intf.operands[1].num_out))
@@ -1044,14 +1044,14 @@ class Conv_HalfRoll(FunctionalModule):
 
         if len(neuron_s.shape_out) != 2:
             in_ch, in_h, in_w = _fm_ndim2_check(neuron_s.shape_out, "CHW")
-            print("变形")
             neuron_s.shape_change((in_ch, in_h))
         in_ch, in_h = neuron_s.shape_out
         cout, cin, kh, kw = kernel.shape
         if len(neuron_d.shape_out) != 2:
             out_ch, out_h, out_w = _fm_ndim2_check(neuron_d.shape_out, "CHW")
-            print("变形")
             neuron_d.shape_change((cout, out_h))
+
+
         # out_h = (in_h + 2 * padding[0] * (kh - 1) - 1) // stride[
         #     0
         # ] + 1
@@ -1062,6 +1062,7 @@ class Conv_HalfRoll(FunctionalModule):
         #         f"Output size mismatch"
         #     )
         self.kernel = kernel
+        self.stride = _pair(stride)
         _shape_out = neuron_d.shape_out
 
         super().__init__(
@@ -1074,9 +1075,10 @@ class Conv_HalfRoll(FunctionalModule):
         )
 
     def spike_func(self, x1: SpikeType, **kwargs) -> SpikeType:
+        print("进入function.spike_func")
         return
 
-    def build(self, network: DynSysGroup, **build_options) -> None:
+    def build(self, network: DynSysGroup, delay: int, **build_options) -> None:
         # 延时神经元
         # if len(self.module_intf.operands[0].shape_out) != 2:
         #     in_ch, in_h, in_w = _fm_ndim2_check(self.module_intf.operands[0].shape_out, "CHW")
@@ -1088,12 +1090,12 @@ class Conv_HalfRoll(FunctionalModule):
         # self.module_intf.operands[1].shape_change((cout, out_h))
         n_delays = NodeList()
         s_delays = NodeList()
-        for i in range(kw - 1):
+        for i in range(kw):
             neuron = Neuron(
                 (cin, in_h),
                 leak_v=0,
                 neg_threshold=0,
-                delay=i+2,
+                delay=delay*i+1,
                 tick_wait_start=self.tick_wait_start,
                 tick_wait_end=self.tick_wait_end,
                 keep_shape=self.keep_shape,
@@ -1106,12 +1108,17 @@ class Conv_HalfRoll(FunctionalModule):
                 n_delays[i],
                 weights=_delay_mapping(in_h, cin, 1),
                 conn_type=ConnType.All2All,
-                name=f"s{i+1}_delay_{self.name}",
+                name=f"s{i}_delay_{self.name}",
             )
             s_delays.append(syn1)
             syn2 = Conv2dHalfRollSyn(  # cin, ih -> cout * oh
-                n_delays[i], self.module_intf.operands[1], kernel=self.kernel, stride=_pair(1), padding=_pair(0),
-                order="OIHW", name=f"s{i+1}_{self.name}",
+                n_delays[i],
+                self.module_intf.operands[1],
+                kernel=self.kernel[:, :, :, kw-i-1],
+                stride=self.stride,
+                padding=_pair(0),
+                order="OIHW",
+                name=f"s{i}_{self.name}",
             )
             s_delays.append(syn2)
             # syn2 = FullConnSyn(
@@ -1122,13 +1129,17 @@ class Conv_HalfRoll(FunctionalModule):
             #     name=f"s{i}_conv",
             # )
             network._add_components(neuron, syn1, syn2)
-        syn3 = Conv2dHalfRollSyn(  # (cin, ih) -> cout * oh
-            self.module_intf.operands[0], self.module_intf.operands[1], kernel=self.kernel, stride=(1,1), padding=(0,0),
-            name=f"s0_{self.name}",
-        )
-        generated = [*n_delays, syn3, *s_delays]
+        # syn3 = Conv2dHalfRollSyn(  # (cin, ih) -> cout * oh
+        #     self.module_intf.operands[0],
+        #     self.module_intf.operands[1],
+        #     kernel=self.kernel[:, :, :, 0],
+        #     stride=self.stride,
+        #     padding=(0,0),
+        #     name=f"s0_{self.name}",
+        # )
+        generated = [*n_delays, *s_delays]
 
-        network._add_components(syn3)
+        #network._add_components(syn3)
         network._remove_components(self)
 
         return generated

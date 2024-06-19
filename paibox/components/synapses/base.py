@@ -78,7 +78,8 @@ class FullConnectedSyn(SynSys):
         else:
             # Retrieve 0 to the dest neurons if it is not working
             synin = np.zeros_like(self.source.spike)
-
+        # print(f"{self.name}.synin:{synin}")
+        # print(self.comm)
         self._synout = self.comm(synin).ravel().astype(np.int32)
         return self._synout
 
@@ -339,7 +340,6 @@ class Conv2dHalfRollSyn(FullConnectedSyn):
             name: Optional[str] = None,
     ) -> None:
         super().__init__(source, dest, name)
-        idx = source._delay - 1
 
         if order == "IOHW":
             _kernel = np.swapaxes(kernel, 0, 1)
@@ -347,7 +347,7 @@ class Conv2dHalfRollSyn(FullConnectedSyn):
             _kernel = kernel.copy()
 
         # O,I,H,W
-        out_channels, in_channels, kernel_h, kernel_w = _kernel.shape
+        out_channels, in_channels, kernel_h = _kernel.shape
         # C,H,W
         if len(source.shape_out) == 2:
             in_ch, in_h = source.shape_out
@@ -359,7 +359,7 @@ class Conv2dHalfRollSyn(FullConnectedSyn):
             raise ShapeError(f"input channels mismatch: {in_ch} != {in_channels}.")
 
         #comm = Conv2dForward((in_h, in_w), (out_h, out_w), _kernel, stride, padding)
-        self.comm = Conv2dHalfForward(idx, (in_ch, in_h), (out_channels, out_h), _kernel, stride, padding)
+        self.comm = Conv2dHalfForward((in_ch, in_h), (out_channels, out_h), _kernel, stride, padding)
 
 
 class ConvTranspose1dSyn(FullConnectedSyn):
