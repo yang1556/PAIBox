@@ -936,6 +936,7 @@ class Conv2dSemiFolded(_SemiFoldedModule):
         stride: _Size2Type = 1,
         padding: _Size2Type = 0,
         bias: DataType = 0,
+        groups: int = 1,
         bit_trunc: int = 8,
         keep_shape: bool = False,
         name: Optional[str] = None,
@@ -950,6 +951,7 @@ class Conv2dSemiFolded(_SemiFoldedModule):
         self.kernel = kernel
         self.stride = _pair(stride)
         self.padding = _pair(padding)
+        self.groups = groups
         self.bit_trunc = bit_trunc
 
         if isinstance(bias, np.ndarray):
@@ -964,11 +966,16 @@ class Conv2dSemiFolded(_SemiFoldedModule):
         # XXX Do not consider the case when the shape of source neurons needs to be changed, for now.
         # neuron_s.shape_change((in_ch, in_h))
 
+        #4      2   3  3
         cout, cin, kh, _ = kernel.shape
         out_h = (in_h - kh + 2 * self.padding[0]) // self.stride[0] + 1
 
-        if in_ch != cin:
-            raise ShapeError(f"the channels mismatch: {in_ch} != {cin}.")
+        if in_ch % groups != 0:
+            raise ValueError('in_channels must be divisible by groups')
+        if cout % groups != 0:
+            raise ValueError('out_channels must be divisible by groups')
+        if in_ch != groups * cin:
+            raise ShapeError(f"the channels mismatch: {in_ch} != {groups* cin}.")
 
         super().__init__(
             neuron_s,
@@ -995,7 +1002,7 @@ class Conv2dSemiFolded(_SemiFoldedModule):
         #     )
         #     self.module_intf.operands[0].shape_change((in_ch, in_h))
         self.valid_interval = valid_interval
-        _, in_h = self.module_intf.operands[0].shape_out
+        in_ch, in_h = self.module_intf.operands[0].shape_out
         _, cin, _, kw = self.kernel.shape
 
         self.ts_1st_valid_out = (
@@ -1029,7 +1036,7 @@ class Conv2dSemiFolded(_SemiFoldedModule):
 
         for i in range(kw):
             neuron = ANNBypassNeuron(
-                (cin, in_h),
+                (in_ch, in_h),
                 delay=valid_interval * i + 1,
                 tick_wait_start=self.tick_wait_start,
                 tick_wait_end=twe,
@@ -1041,7 +1048,7 @@ class Conv2dSemiFolded(_SemiFoldedModule):
             syn1 = FullConnSyn(
                 self.module_intf.operands[0],
                 neuron,
-                weights=_delay_mapping(in_h, cin),
+                weights=_delay_mapping(in_h, in_ch),
                 conn_type=ConnType.All2All,
                 name=f"s{i}_delay_{self.name}",
             )
@@ -1053,6 +1060,7 @@ class Conv2dSemiFolded(_SemiFoldedModule):
                 self.kernel[:, :, :, kw - i - 1],
                 self.stride,
                 self.padding,
+                self.groups,
                 "OIL",
                 name=f"s{i}_{self.name}",
             )
@@ -1065,7 +1073,7 @@ class Conv2dSemiFolded(_SemiFoldedModule):
         if ts_first_valid_inp > 0:
             for p in range(self.padding[0]):
                 neuron = ANNBypassNeuron(
-                    (cin, in_h),
+                    (in_ch, in_h),
                     delay=valid_interval * (kw - 1 - p) + 1,
                     tick_wait_start=self.tick_wait_start,
                     tick_wait_end=ts_first_valid_inp,
@@ -1077,7 +1085,7 @@ class Conv2dSemiFolded(_SemiFoldedModule):
                 syn1 = FullConnSyn(
                     self.module_intf.operands[0],
                     neuron,
-                    weights=_delay_mapping(in_h, cin),
+                    weights=_delay_mapping(in_h, in_ch),
                     conn_type=ConnType.All2All,
                     name=f"s{p}_pad_{self.name}",
                 )
@@ -1089,6 +1097,7 @@ class Conv2dSemiFolded(_SemiFoldedModule):
                     -(self.kernel[:, :, :, p]),
                     self.stride,
                     self.padding,
+                    self.groups,
                     "OIL",
                     name=f"neg_s{p}_{self.name}",
                 )
