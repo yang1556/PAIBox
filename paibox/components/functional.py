@@ -865,16 +865,17 @@ class LinearSemiFolded(_LinearBase, _SemiFoldedModule):
         raise NotImplementedError
 
     def build(
-        self, network: DynSysGroup, valid_interval: int, **build_options
+        self, network: DynSysGroup, valid_interval: int, ts_first_valid_inp: int, **build_options
     ) -> BuiltComponentType:
         assert len(self.module_intf.operands[0].shape_out) == 2
         self.valid_interval = valid_interval
 
         in_ch, in_h = self.module_intf.operands[0].shape_out
-        if in_ch * in_h * in_h * valid_interval > 18432:
-            raise ResourceError(
-                f"The {self.name} input size is too large. Please adjust the input size or the number of channels."
-            )
+
+        twe = 1+ts_first_valid_inp + (in_h - 1) * valid_interval
+
+        if build_options.get("check_before_compile"):
+            self._input_buffer_len_check(in_ch, in_h, in_h, valid_interval)
         n_delays = NodeList()
         s_delays = NodeList()
         s_weight = NodeList()
@@ -885,7 +886,7 @@ class LinearSemiFolded(_LinearBase, _SemiFoldedModule):
             self.bit_trunc,
             delay=self.delay_relative,
             tick_wait_start=self.tick_wait_start + 1,
-            tick_wait_end=self.tick_wait_end,
+            tick_wait_end=twe,
             keep_shape=self.keep_shape,
             name=f"nd_{self.name}",
         )
@@ -895,7 +896,7 @@ class LinearSemiFolded(_LinearBase, _SemiFoldedModule):
                 shape=(in_ch, in_h),
                 delay=valid_interval * i + 1,
                 tick_wait_start=self.tick_wait_start,
-                tick_wait_end=self.tick_wait_end,
+                tick_wait_end=twe-i*valid_interval,
                 keep_shape=self.keep_shape,
                 name=f"n{i}_{self.name}",
             )
@@ -1032,10 +1033,11 @@ class Conv2dSemiFolded(_SemiFoldedModule):
                 (cin, in_h),
                 delay=valid_interval * i + 1,
                 tick_wait_start=self.tick_wait_start,
-                tick_wait_end=twe,
+                tick_wait_end=twe-i*valid_interval,
                 keep_shape=self.keep_shape,
                 name=f"n{i}_delay_{self.name}",
             )
+            print("twe,", twe-i*valid_interval)
             n_delays.append(neuron)
             # delay synapses
             syn1 = FullConnSyn(

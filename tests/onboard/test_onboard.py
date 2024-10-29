@@ -1330,12 +1330,12 @@ class TestOnBoard_SemiFoldedOp:
 
         print(f"\nTest {TEST_NAME} start")
 
-        shape1 = (3, 32, 32)  # C*H*W
-        ksize1 = (4, shape1[0], 3, 3)  # O*C*K*K
-        ksize2 = (4, ksize1[0], 3, 3)
-        out_shape = (4 * 32 * 32, 10)
+        shape1 = (1, 17, 17)  # C*H*W
+        ksize1 = (7, shape1[0], 3, 3)  # O*C*K*K
+        ksize2 = (7, ksize1[0], 3, 3)
+        out_shape = (7 * 17 * 17, 10)
 
-        sim_time = 40
+        sim_time = 25
 
         USE_EXISTING_DATA = False
         NPZ_FILE = TEST_CASE_DIR / f"data.npz"

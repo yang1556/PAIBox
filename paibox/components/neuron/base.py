@@ -520,8 +520,14 @@ class Neuron(MetaNeuron, NeuDyn):
             x = np.atleast_1d(x)
 
         self._neu_out, self._vjt = super().update(x, self._vjt)
-
+        # for i in range(10):
+        #     if self.name == f"n{i}_LinearSemiFolded_0":
+        #         print(self.name, self._neu_out)
         idx = (self.timestamp + self.delay_relative - 1) % HwConfig.N_TIMESLOT_MAX
+        for i in range(32):
+            if self.name == f"n{i}_LinearSemiFolded_0":
+                #print(self.name, self._neu_out)
+                print(self.name, self.tick_wait_end)
         self.delay_registers[idx] = self._neu_out.copy()
 
         return self._neu_out

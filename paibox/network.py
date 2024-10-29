@@ -106,7 +106,7 @@ class DynSysGroup(DynamicSys, Container):
                 ts_1st_valid_out = module.ts_1st_valid_out
             elif isinstance(module, LinearSemiFolded):
                 generated[module] = module.build(
-                    network, semi_valid_interval, **build_options
+                    network, semi_valid_interval, ts_1st_valid_out, **build_options
                 )
             else:
                 generated[module] = module.build(network, **build_options)

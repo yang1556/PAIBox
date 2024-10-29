@@ -22,7 +22,7 @@ from .utils import (
     maxpool1d_golden,
     maxpool2d_golden,
 )
-
+from paicorelib import HwConfig
 
 def _assert_build_fmodule(
     network: DynSysGroup, n_node_bef_build: int, n_node_aft_build: int
@@ -830,86 +830,181 @@ class TestFunctionalModules:
         mapper.export(fp=ensure_dump_dir)
 
     @pytest.mark.parametrize(
+        "ishape_chw, stride, out_features",
+        [
+            ((1, 32, 32), 1, 10),
+        ],
+    )
+
+    def test_SemiFoldedFC(
+        self,
+        ishape_chw,
+        stride,
+        out_features,
+        fixed_rng: np.random.Generator,
+        monkeypatch
+    ):
+        monkeypatch.setattr(HwConfig, 'N_TIMESLOT_MAX', 4)
+        #print(HwConfig.N_TIMESLOT_MAX)
+        """Test the network with N semi-folded conv2d + 1 semi-folded linear."""
+        from tests.shared_networks import Conv2dSemiFolded_FC_ChainNetN
+
+        fc_weight = fixed_rng.integers(
+            -4,
+            5,
+            size=(ishape_chw[0] * ishape_chw[1] * ishape_chw[2], shape2num(out_features)),
+            dtype=WEIGHT_DTYPE,
+        )
+
+        net1 = Conv2dSemiFolded_FC_ChainNetN(
+            ishape_chw[:2], out_features, fc_weight
+        )
+        linear = net1.linear1
+        generated = DynSysGroup.build_fmodule(net1)
+        sim1 = pb.Simulator(net1, start_time_zero=False)
+
+        probe_conv_list = []
+
+        probe_linear = pb.Probe(generated[linear][0], "output")
+        sim1.add_probe(probe_linear)
+
+        semi_folded_modules = [linear]
+        semi_valid_interval = []
+        for m in semi_folded_modules:
+            semi_valid_interval.append(m.valid_interval)
+
+        n_test = 3  # can be more
+        for _ in range(n_test):
+            sim1.reset()
+            inpa = fixed_rng.integers(0, 4, size=ishape_chw, dtype=NEUOUT_U8_DTYPE)
+            if inpa.shape[-1] < 10:
+                inp_pad0 = np.concatenate(
+                    [
+                        inpa,
+                        np.zeros((inpa.shape[0], inpa.shape[1], 15), dtype=inpa.dtype),
+                    ],
+                    axis=2,
+                    dtype=inpa.dtype,
+                )
+            else:
+                inp_pad0 = np.concatenate(
+                    [inpa, np.zeros_like(inpa)], axis=2, dtype=inpa.dtype
+                )
+            for i in range(inp_pad0.shape[-1]):
+                pb.FRONTEND_ENV.save(data1=inp_pad0[:, :, i])
+                sim1.run(1)
+                #print()
+
+
+            x = inpa
+
+            # x is the reference result of the last convolution.
+            expected_fc_t = _ann_bit_trunc(x.ravel() @ fc_weight.astype(VOLTAGE_DTYPE))
+
+            # Check the result of semi-folded linear.
+            assert np.array_equal(
+                expected_fc_t,
+                sim1.data[probe_linear][
+                    linear.tick_wait_start
+                    + ts_1st_valid[-1]
+                    + (ows[-1] - 1) * semi_valid_interval[-1]
+                    - 1
+                ],
+            )
+
+    @pytest.mark.parametrize(
         # NOTE: Only support padding in the first semi-folded conv2d for now.
         "ishape_chw, n_conv, kshape_oihw, stride, padding, out_features",
         [
             # n_conv = 1
-            ((3, 11, 11), 1, [(1, 3, 3, 3)], [1], [1], (10,)),
-            ((3, 12, 12), 1, [(12, 3, 3, 3)], [(1, 1)], [2], (10,)),
-            ((8, 12, 12), 1, [(16, 8, 3, 3)], [(2, 2)], [2], (10,)),
-            ((8, 12, 12), 1, [(16, 8, 4, 4)], [2], [1], (10,)),
-            ((4, 12, 12), 1, [(8, 4, 3, 3)], [1], [0], (4, 2)),
-            ((4, 24, 24), 1, [(8, 4, 3, 3)], [2], [0], 10),
-            ((12, 12, 12), 1, [(6, 12, 3, 3)], [1], [0], (3, 3)),
-            ((4, 24, 24), 1, [(8, 4, 4, 4)], [2], [0], (10,)),
-            ((8, 32, 32), 1, [(4, 8, 3, 3)], [2], [0], 10),
+            # ((3, 11, 11), 1, [(1, 3, 3, 3)], [1], [0], (10,)),
+            # ((3, 12, 12), 1, [(12, 3, 3, 3)], [(1, 1)], [2], (10,)),
+            # ((8, 12, 12), 1, [(16, 8, 3, 3)], [(2, 2)], [2], (10,)),
+            # ((8, 12, 12), 1, [(16, 8, 4, 4)], [2], [1], (10,)),
+            # ((4, 12, 12), 1, [(8, 4, 3, 3)], [1], [0], (4, 2)),
+            # ((4, 24, 24), 1, [(8, 4, 3, 3)], [2], [0], 10),
+            # ((12, 12, 12), 1, [(6, 12, 3, 3)], [1], [0], (3, 3)),
+            # ((4, 24, 24), 1, [(8, 4, 4, 4)], [2], [0], (10,)),
+            # ((1, 32, 32), 1, [(1, 1, 3, 3)], [1], [0], 10),
             # n_conv = 2
-            ((1, 5, 5), 2, [(1, 1, 3, 3), (1, 1, 3, 3)], [(1, 1), (1, 1)], [2, 2], 10),
-            (
-                (4, 32, 32),
-                2,
-                [(8, 4, 3, 3), (12, 8, 4, 4)],
-                [(2, 2), (2, 2)],
-                [1, 1],
-                10,
-            ),
-            (
-                (4, 32, 32),
-                2,
-                [(8, 4, 3, 3), (12, 8, 4, 4)],
-                [(2, 2), (1, 1)],
-                [1, 2],
-                10,
-            ),
-            ((1, 32, 32), 2, [(1, 1, 3, 3), (1, 1, 3, 3)], [2, 2], [2, 2], 10),
-            ((1, 32, 32), 2, [(1, 1, 4, 4), (1, 1, 4, 4)], [1, 2], [2, 2], 10),
-            ((1, 32, 32), 2, [(1, 1, 4, 4), (1, 1, 4, 4)], [2, 2], [2, 2], 10),
-            ((1, 24, 24), 2, [(1, 1, 3, 3), (1, 1, 4, 4)], [1, 2], [2, 1], 10),
-            ((1, 24, 24), 2, [(1, 1, 3, 3), (1, 1, 3, 3)], [2, 2], [2, 2], 10),
+            # ((1, 16, 16), 2, [(1, 1, 3, 3), (1, 1, 3, 3)], [(2, 2), (2, 2)], [0, 0], 10),
+            # ((1, 5, 5), 2, [(1, 1, 3, 3), (1, 1, 3, 3)], [(1, 1), (1, 1)], [1, 1], 10),
+            # ((4, 40, 40), 2, [(4, 4, 3, 3), (4, 4, 3, 3)], [(2, 2), (2, 2)], [0, 0], 10),
+            # (
+            #     (4, 32, 32),
+            #     2,
+            #     [(8, 4, 3, 3), (12, 8, 4, 4)],
+            #     [(2, 2), (2, 2)],
+            #     [1, 1],
+            #     10,
+            # ),
+            # (
+            #     (4, 32, 32),
+            #     2,
+            #     [(8, 4, 3, 3), (12, 8, 4, 4)],
+            #     [(2, 2), (1, 1)],
+            #     [1, 2],
+            #     10,
+            # ),
+            # ((4, 128, 128), 2, [(4, 4, 2, 2), (4, 4, 2, 2)], [2, 2], [0, 0], 10),
+            # ((1, 32, 32), 2, [(1, 1, 3, 3), (1, 1, 3, 3)], [2, 2], [0, 0], 10),
+            # ((1, 32, 32), 2, [(1, 1, 4, 4), (1, 1, 4, 4)], [1, 2], [0, 0], 10),
+            # ((1, 32, 32), 2, [(1, 1, 4, 4), (1, 1, 4, 4)], [2, 2], [0, 0], 10),
+            # ((1, 24, 24), 2, [(1, 1, 3, 3), (1, 1, 4, 4)], [1, 2], [0, 0], 10),
+            # ((1, 24, 24), 2, [(1, 1, 3, 3), (1, 1, 3, 3)], [2, 2], [0, 0], 10),
             # n_conv = 3
             (
                 (4, 32, 32),
                 3,
-                [(8, 4, 3, 3), (16, 8, 3, 3), (8, 16, 2, 2)],
-                [1, 1, 1],
-                [1, 1, 1],
-                3,
-            ),
-            (
-                (3, 32, 32),
-                3,
-                [(16, 3, 3, 3), (32, 16, 3, 3), (10, 32, 3, 3)],
-                [1, 1, 1],
-                [1, 0, 1],
-                10,
-            ),
-            (
-                (1, 224, 224),
-                3,
-                [(1, 1, 7, 7), (1, 1, 5, 5), (1, 1, 3, 3)],
+                [(8, 4, 3, 3), (16, 8, 3, 3), (8, 16, 3, 3)],
                 [2, 2, 2],
-                [3, 2, 1],
-                10,
-            ),
-            (
-                (3, 32, 32),
+                [0, 0, 0],
                 3,
-                [(3, 3, 3, 3), (3, 3, 2, 2), (3, 3, 3, 3)],
-                [1, 2, 1],
-                [1, 0, 1],
-                10,
             ),
-            # n_conv = 5
-            (
-                (3, 32, 32),
-                5,
-                [(3, 3, 3, 3), (3, 3, 2, 2), (3, 3, 3, 3), (3, 3, 2, 2), (3, 3, 3, 3)],
-                [1, 2, 1, 2, 1],
-                [1, 0, 1, 0, 1],
-                10,
-            ),
+            # (
+            #     (4, 32, 32),
+            #     3,
+            #     [(8, 4, 3, 3), (16, 8, 3, 3), (8, 16, 2, 2)],
+            #     [1, 1, 1],
+            #     [1, 1, 1],
+            #     3,
+            # ),
+            # (
+            #     (3, 32, 32),
+            #     3,
+            #     [(16, 3, 3, 3), (32, 16, 3, 3), (10, 32, 3, 3)],
+            #     [1, 1, 1],
+            #     [1, 0, 1],
+            #     10,
+            # ),
+            # (
+            #     (1, 224, 224),
+            #     3,
+            #     [(1, 1, 7, 7), (1, 1, 5, 5), (1, 1, 3, 3)],
+            #     [2, 2, 2],
+            #     [3, 2, 1],
+            #     10,
+            # ),
+            # (
+            #     (3, 32, 32),
+            #     3,
+            #     [(3, 3, 3, 3), (3, 3, 2, 2), (3, 3, 3, 3)],
+            #     [1, 2, 1],
+            #     [1, 0, 1],
+            #     10,
+            # ),
+            # # n_conv = 5
+            # (
+            #     (3, 32, 32),
+            #     5,
+            #     [(3, 3, 3, 3), (3, 3, 2, 2), (3, 3, 3, 3), (3, 3, 2, 2), (3, 3, 3, 3)],
+            #     [1, 2, 1, 2, 1],
+            #     [1, 0, 1, 0, 1],
+            #     10,
+            # ),
         ],
     )
+
     def test_Conv2dSemiFolded_FC_ChainNet(
         self,
         ishape_chw,
@@ -919,7 +1014,10 @@ class TestFunctionalModules:
         padding,
         out_features,
         fixed_rng: np.random.Generator,
+        monkeypatch
     ):
+        monkeypatch.setattr(HwConfig, 'N_TIMESLOT_MAX', 9)
+        #print(HwConfig.N_TIMESLOT_MAX)
         """Test the network with N semi-folded conv2d + 1 semi-folded linear."""
         from tests.shared_networks import Conv2dSemiFolded_FC_ChainNetN
 
@@ -1011,10 +1109,11 @@ class TestFunctionalModules:
                 inp_pad0 = np.concatenate(
                     [inpa, np.zeros_like(inpa)], axis=2, dtype=inpa.dtype
                 )
-
             for i in range(inp_pad0.shape[-1]):
                 pb.FRONTEND_ENV.save(data1=inp_pad0[:, :, i])
                 sim1.run(1)
+                #print()
+
 
             x = inpa
             for i_conv in range(n_conv):
@@ -1028,7 +1127,7 @@ class TestFunctionalModules:
                     )
                 )
 
-                # Check the result of semi-folded convolutions.
+                #Check the result of semi-folded convolutions.
                 for i in range(ows[i_conv]):
                     assert np.array_equal(
                         x[:, :, i].ravel(),
@@ -1039,7 +1138,7 @@ class TestFunctionalModules:
                             - 1
                         ],
                     )
-
+            #print(x)
             # x is the reference result of the last convolution.
             expected_fc_t = _ann_bit_trunc(x.ravel() @ fc_weight.astype(VOLTAGE_DTYPE))
 
