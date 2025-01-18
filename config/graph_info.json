@@ -1,0 +1,15 @@
+{
+  "name": "graph_of_fcnet_0",
+  "inherent_timestep": 2,
+  "output_flow_format": {
+    "batch_dual_port_o1": "DataFlowFormat(t_1st_vld=2, interval=1, n_vld=0, is_local_time=False)",
+    "batch_dual_port_o2": "DataFlowFormat(t_1st_vld=2, interval=1, n_vld=0, is_local_time=False)"
+  },
+  "n_core_required": 2,
+  "n_core_occupied": 2,
+  "misc": {
+    "target_chip_list": [
+      "(0,0)"
+    ]
+  }
+}

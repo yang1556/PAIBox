@@ -500,20 +500,25 @@ class Mapper:
         output_dest_info: OutputDestConf = defaultdict(dict)
         # Shallow copy
         ocoord = copy(_BACKEND_CONTEXT["output_core_addr_start"])
-
+        print("output_core_addr_start", ocoord)
+        #print("routing_groups,", self.routing_groups)
+        i = 0
         for rg in self.routing_groups:
+            i += 1
+            print(f"rg{i}", rg)
             for member_cb in rg:
                 self.core_params[rg.chip_coord] |= CoreBlock.export_core_plm_config(
                     member_cb
                 )
-
                 if self.degrees_of_cb[member_cb].out_degree == 0:
                     # member_cb is a pure output core block. All neu_segs inside are output neurons.
                     ocoord = self._onode_cb_config_export(
                         member_cb, output_dest_info, ocoord
                     )
+                    print("单节点")
                 elif any(d in self.graph.onodes.values() for d in member_cb.dest):
                     # member_cb is both a member & output core block.
+                    print("多节点")
                     ocoord = self._member_onode_cb_config_export(
                         member_cb, output_dest_info, ocoord
                     )
@@ -586,21 +591,35 @@ class Mapper:
         cur_ocoord = ocoord
         output_axon_offset = 0
         o_nodes = [d for d in onode_cb.dest if d in self.graph.onodes.values()]
-
+        for o in o_nodes:
+            print("o_ondes", o.name)
         for core_plm in onode_cb.core_placements.values():
+            print("core_plm", core_plm)
+            print()
             for neu_seg in core_plm.neu_segs_of_cplm:
+                print("output_Axon_offset: ", output_axon_offset, "neu_Seg sice: ", neu_seg.index)
+
+                print(neu_seg)
+                print("neu_Seg target", neu_seg.target.name)
+                print("neu_Seg index", neu_seg.index)
+
                 # Get the output coordinate of this neu_seg
                 offset_idx = o_nodes.index(neu_seg.target)
+                print("offset_idx", offset_idx)
                 cur_ocoord = ocoord + CoordOffset.from_offset(offset_idx)
+                print("cur_occoord", cur_ocoord)
+                print("output_axon_offset", output_axon_offset)
                 output_axon_offset = core_plm.export_neu_config(
                     neu_seg,
                     output_core_coord=cur_ocoord,
                     axon_addr_offset=output_axon_offset,
                 )
+                print("output_axon_offset", output_axon_offset)
                 output_dest_info[neu_seg.target.name][core_plm.coord] = (
                     core_plm.neu_configs[neu_seg.target].neuron_dest_info
                 )
-
+        #print("_onode_cb_config_export执行完毕")
+        print("offset", CoordOffset.from_offset(1))
         # Add the offset as the starting coordinate of the next output node
         return cur_ocoord + CoordOffset.from_offset(1)
 

@@ -795,7 +795,13 @@ class CorePlacement(CoreAbstract):
         axon_addr_offset: Optional[int] = None,
     ) -> Optional[int]:
         """Export the neuron configuration."""
+
+        print("Export the neuron configuration")
         if isinstance(axon_dests, list):
+            print(axon_dests[0].axon_segments[neu_seg.target])
+            print(neu_seg.target.delay_relative)
+            print(axon_dests[0].n_timeslot)
+            print(is_iw8(axon_dests[0].rt_mode))
             axon_coords = aligned_coords(
                 neu_seg.index,
                 axon_dests[0].axon_segments[neu_seg.target],
@@ -803,7 +809,7 @@ class CorePlacement(CoreAbstract):
                 axon_dests[0].n_timeslot,
                 is_iw8(axon_dests[0].rt_mode),
             )
-
+            # print(axon_coords)
             # Get all core coordinates and replication ids.
             assert all(axon_dests[0].chip_coord == ad.chip_coord for ad in axon_dests)
 
@@ -814,19 +820,28 @@ class CorePlacement(CoreAbstract):
             config = NeuronConfig(
                 neu_seg, axon_coords, dest_core_coords, axon_dests[0].chip_coord
             )
-
+            #print(config)
             self.neu_configs[neu_seg.target] = config
             return None
         else:
             # neu_seg is a part of an output node
+            print("output export ................................")
             assert isinstance(output_core_coord, Coord)
             assert isinstance(axon_addr_offset, int)
-
+            #print(axon_addr_offset, axon_addr_offset + neu_seg.n_neuron)
+            # AxonSegment()
+            # axon_coords = aligned_coords(
+            #     neu_seg.index,
+            #     axon_dests[0].axon_segments[neu_seg.target],
+            #     neu_seg.target.delay_relative,
+            #     axon_dests[0].n_timeslot,
+            #     False,
+            # )
             axon_coords = [
-                AxonCoord(0, i)
+                AxonCoord(0, i) if i < 1152 else AxonCoord(i // 1152, i % 1152)
                 for i in range(axon_addr_offset, axon_addr_offset + neu_seg.n_neuron)
             ]
-
+            print("axon_coords", axon_coords)
             config = NeuronConfig(
                 neu_seg,
                 axon_coords,
@@ -834,9 +849,9 @@ class CorePlacement(CoreAbstract):
                 # output chip coordinate for output node
                 _BACKEND_CONTEXT["output_chip_addr"],
             )
-
+            #print("config", config)
             self.neu_configs[neu_seg.target] = config
-
+            #print("core_plm.export_neu_config执行完毕")
             return axon_addr_offset + neu_seg.n_neuron
 
     def export_core_plm_config(self) -> CorePlmConfig:

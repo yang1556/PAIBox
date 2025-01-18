@@ -2078,7 +2078,7 @@ class TestOnBoard_SemiFoldedOp:
         shape1 = (3, 32, 32)  # C*H*W
         ksize1 = (4, shape1[0], 4, 4)  # O*C*K*K
         ksize2 = (4, ksize1[0], 4, 4)
-        out_shape = (4 * 8 * 8, 10)
+        out_shape = (4 * 8 * 8, 1152)
 
         sim_time = 40
 

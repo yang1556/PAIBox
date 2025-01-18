@@ -95,6 +95,7 @@ def gen_config_frames_by_coreconf(
                     <= HwConfig.ADDR_RAM_MAX + 1
                 ):
                     # Place in the NRAM
+                    #print("export: neu_conf.neuron_dest_info", neu_conf.neuron_dest_info)
                     config_frame_type3.append(
                         OfflineFrameGen.gen_config_frame3(
                             chip_coord,

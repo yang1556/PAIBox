@@ -1,0 +1,34 @@
+{
+  "(0,0)": {
+    "(0,0)": {
+      "weight_width": 3,
+      "LCN": 0,
+      "input_width": 0,
+      "spike_width": 0,
+      "num_dendrite": 80,
+      "pool_max": 0,
+      "tick_wait_start": 1,
+      "tick_wait_end": 0,
+      "snn_en": 1,
+      "target_LCN": 0,
+      "test_chip_addr": 32,
+      "n_repeat_nram": 8,
+      "name": "CorePlacement_0"
+    },
+    "(0,1)": {
+      "weight_width": 3,
+      "LCN": 0,
+      "input_width": 0,
+      "spike_width": 0,
+      "num_dendrite": 160,
+      "pool_max": 0,
+      "tick_wait_start": 2,
+      "tick_wait_end": 0,
+      "snn_en": 1,
+      "target_LCN": 0,
+      "test_chip_addr": 32,
+      "n_repeat_nram": 8,
+      "name": "CorePlacement_1"
+    }
+  }
+}
