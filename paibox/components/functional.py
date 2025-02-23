@@ -69,6 +69,8 @@ __all__ = [
     "Conv2dSemiFolded",
     "MaxPool2dSemiFolded",
     "AvgPool2dSemiFolded",
+    "MaxPooling2d",
+    "AvgPooling2d"
 ]
 
 
@@ -1484,6 +1486,170 @@ class AvgPool2dSemiFolded(_SemiFoldedModule):
 
         return generated
 
+@set_rt_mode_ann()
+class MaxPooling2d(FunctionalModule):
+    inherent_delay = 0
+
+    def __init__(
+        self,
+        neuron_s: Union[NeuDyn, InputProj],
+        kernel_size: _Size2Type,
+        stride: Optional[_Size2Type] = None,
+        padding: _Size2Type = 0,
+        bit_trunc: Optional[int] = 8,
+        *,
+        keep_shape: bool = False,
+        name: Optional[str] = None,
+        **kwargs,
+    ) -> None:
+        self.kernel_size = _pair(kernel_size)
+        if stride is None:
+            _stride = self.kernel_size
+        else:
+            _stride = _pair(stride)
+
+        self.stride = _stride
+        self.padding = _pair(padding)
+        self.bit_trunc = bit_trunc
+
+        assert len(neuron_s.shape_out) == 3
+        in_ch, in_h, in_w = neuron_s.shape_out
+        out_h = (in_h - self.kernel_size[0] + 2 * self.padding[0]) // self.stride[0] + 1
+        out_w = (in_w - self.kernel_size[1] + 2 * self.padding[1]) // self.stride[1] + 1
+        kh, kw = self.kernel_size
+        assert self.padding[0] < kh and self.padding[1] < kw
+
+        super().__init__(
+            neuron_s,
+            shape_out=(in_ch, out_h, out_w),
+            keep_shape=keep_shape,
+            name=name,
+            **kwargs,
+        )
+
+    def spike_func(self, x1: NeuOutType, **kwargs) -> NeuOutType:
+        output = x1 @ self.weights.astype(VOLTAGE_DTYPE)
+        output = output + self.bias
+        output = np.where(output >= 1, MetaNeuron._truncate(output, self.bit_trunc), 0)
+
+        return output.astype(NEUOUT_U8_DTYPE)
+
+    def build(self, network: "DynSysGroup", **build_options) -> BuiltComponentType:
+        cin, ih, iw = self.source[0].shape_out
+        kh, kw = self.kernel_size
+        _, oh, ow = self.shape_out
+        pool_2d = ANNNeuron(
+            self.shape_out,
+            bit_trunc=self.bit_trunc,
+            delay=self.delay_relative,
+            tick_wait_start=self.tick_wait_start,
+            tick_wait_end=self.tick_wait_end,
+            pool_max=True,
+            keep_shape=self.keep_shape,
+            name=f"nd_{self.name}",
+        )
+
+        syn1 = MaxPoolSyn(
+            self.source[0],
+            pool_2d,
+            weights=_poo2d_mapping_mask(
+                cin, ih, iw, oh, ow, kh, kw, self.stride, (0, 0)
+            ),
+            name=f"s0_{self.name}",
+        )
+
+        generated = [pool_2d, syn1]
+        self._rebuild_out_intf(network, pool_2d, *generated, **build_options)
+
+        return generated
+
+
+
+@set_rt_mode_ann()
+class AvgPooling2d(FunctionalModule):
+    inherent_delay = 0
+
+    def __init__(
+        self,
+        neuron_s: Union[NeuDyn, InputProj],
+        kernel_size: _Size2Type,
+        stride: Optional[_Size2Type] = None,
+        padding: _Size2Type = 0,
+        bit_trunc: Optional[int] = None,
+        *,
+        keep_shape: bool = False,
+        name: Optional[str] = None,
+        **kwargs,
+    ) -> None:
+        self.kernel_size = _pair(kernel_size)
+        if stride is None:
+            _stride = self.kernel_size
+        else:
+            _stride = _pair(stride)
+
+        self.stride = _stride
+        self.padding = _pair(padding)
+        self.bit_trunc = bit_trunc
+
+        assert len(neuron_s.shape_out) == 3
+        in_ch, in_h, in_w = neuron_s.shape_out
+        out_h = (in_h - self.kernel_size[0] + 2 * self.padding[0]) // self.stride[0] + 1
+        out_w = (in_w - self.kernel_size[1] + 2 * self.padding[1]) // self.stride[1] + 1
+        kh, kw = self.kernel_size
+        assert self.padding[0] < kh and self.padding[1] < kw
+
+        super().__init__(
+            neuron_s,
+            shape_out=(in_ch, out_h, out_w),
+            keep_shape=keep_shape,
+            name=name,
+            **kwargs,
+        )
+
+    def spike_func(self, x1: NeuOutType, **kwargs) -> NeuOutType:
+        output = x1 @ self.weights.astype(VOLTAGE_DTYPE)
+        output = output + self.bias
+        output = np.where(output >= 1, MetaNeuron._truncate(output, self.bit_trunc), 0)
+
+        return output.astype(NEUOUT_U8_DTYPE)
+
+    def build(self, network: "DynSysGroup", **build_options) -> BuiltComponentType:
+        cin, ih, iw = self.source[0].shape_out
+        kh, kw = self.kernel_size
+        _, oh, ow = self.shape_out
+
+        bt = (
+            self.bit_trunc
+            if isinstance(self.bit_trunc, int)
+            else 8 + (kh * kw).bit_length() - 1
+        )
+
+        pool_2d = ANNNeuron(
+            self.shape_out,
+            bit_trunc=bt,
+            delay=self.delay_relative,
+            tick_wait_start=self.tick_wait_start,
+            tick_wait_end=self.tick_wait_end,
+            pool_max=False,
+            keep_shape=self.keep_shape,
+            name=f"nd_{self.name}",
+        )
+
+        syn1 = FullConnSyn(
+            self.source[0],
+            pool_2d,
+            weights=_poo2d_mapping_mask(
+                cin, ih, iw, oh, ow, kh, kw, self.stride, (0, 0)
+            ),
+            conn_type=ConnType.All2All,
+            name=f"s1_{self.name}",
+        )
+
+        generated = [pool_2d, syn1]
+        self._rebuild_out_intf(network, pool_2d, *generated, **build_options)
+
+        return generated
+
 
 def _spike_func_sadd_ssub(
     vjt: VoltageType, pos_thres: int, reset_v: Optional[int] = None
@@ -1624,3 +1790,48 @@ def _poo2d_semifolded_mapping_mask(
         m[i * ih : i * ih + ih, i * oh : i * oh + oh] = m_block
 
     return m
+
+
+def _poo2d_mapping_mask(
+    cin: int,
+    ih: int,
+    iw: int,
+    oh: int,
+    ow: int,
+    kh: int,
+    kw: int,
+    stride: tuple[int, int],
+    padding: tuple[int, int],
+) -> WeightType:
+    n_input = cin * ih * iw
+    n_output = cin * oh * ow
+    # 初始化权重矩阵为全0
+    weights = np.zeros((n_input, n_output), dtype=WEIGHT_DTYPE)
+
+    stride_h, stride_w = stride
+    pad_h, pad_w = padding
+
+    # 遍历每个通道
+    for c in range(cin):
+        # 遍历输出特征图的每个位置
+        for h_out in range(oh):
+            for w_out in range(ow):
+                # 计算池化窗口的起始坐标（考虑padding）
+                h_start = h_out * stride_h - pad_h
+                w_start = w_out * stride_w - pad_w
+
+                # 遍历池化窗口内的每个元素
+                for dh in range(kh):
+                    for dw in range(kw):
+                        # 计算输入中的实际坐标
+                        h_in = h_start + dh
+                        w_in = w_start + dw
+
+                        # 检查坐标是否在有效范围内
+                        if 0 <= h_in < ih and 0 <= w_in < iw:
+                            # 计算输入和输出的flatten索引
+                            input_idx = c * (ih * iw) + h_in * iw + w_in
+                            output_idx = c * (oh * ow) + h_out * ow + w_out
+                            # 在权重矩阵中标记为1
+                            weights[input_idx, output_idx] = 1
+    return weights
