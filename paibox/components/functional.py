@@ -1576,7 +1576,7 @@ class MaxPooling2d(FunctionalModule):
             self.source[0],
             pool_2d,
             weights=_poo2d_mapping_mask(
-                cin, ih, iw, oh, ow, kh, kw, self.stride, (0, 0)
+                cin, ih, iw, oh, ow, kh, kw, self.stride, self.padding
             ),
             name=f"s0_{self.name}",
         )
@@ -1689,7 +1689,7 @@ class AvgPooling2d(FunctionalModule):
             self.source[0],
             pool_2d,
             weights=_poo2d_mapping_mask(
-                cin, ih, iw, oh, ow, kh, kw, self.stride, (0, 0)
+                cin, ih, iw, oh, ow, kh, kw, self.stride, self.padding
             ),
             conn_type=ConnType.All2All,
             name=f"s1_{self.name}",
@@ -1884,4 +1884,5 @@ def _poo2d_mapping_mask(
                             output_idx = c * (oh * ow) + h_out * ow + w_out
                             # 在权重矩阵中标记为1
                             weights[input_idx, output_idx] = 1
+
     return weights
