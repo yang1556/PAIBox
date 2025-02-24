@@ -5,6 +5,7 @@ from functools import partial
 from typing import ClassVar, Optional, Union
 
 import numpy as np
+from numpy.lib.stride_tricks import as_strided
 from paicorelib import NTM, RM, TM
 
 from paibox.base import NeuDyn, NodeList
@@ -1527,12 +1528,34 @@ class MaxPooling2d(FunctionalModule):
             **kwargs,
         )
 
-    def spike_func(self, x1: NeuOutType, **kwargs) -> NeuOutType:
-        output = x1 @ self.weights.astype(VOLTAGE_DTYPE)
-        output = output + self.bias
-        output = np.where(output >= 1, MetaNeuron._truncate(output, self.bit_trunc), 0)
+    def spike_func(self, x1: NeuOutType, **kwargs) -> NeuOutType: 
+        c, h, w = self.source[0].shape_out
+        x1 = x1.reshape(c, h, w)
+        kh, kw = self.kernel_size
+        sh, sw = self.stride
+        ph, pw = self.padding
 
-        return output.astype(NEUOUT_U8_DTYPE)
+        padded_h = h + 2*ph
+        padded_w = w + 2*pw
+        x_pad = np.zeros((c, padded_h, padded_w), dtype=x1.dtype)
+        x_pad[:, ph:ph+h, pw:pw+w] = x1  
+
+        _, out_h, out_w = self.shape_out
+
+
+        strides = (
+            x_pad.strides[0],  
+            sh * x_pad.strides[1],  
+            sw * x_pad.strides[2]   
+        )
+        windows = as_strided(
+            x_pad,
+            shape=(c, out_h, out_w, kh, kw),
+            strides=strides + (x_pad.strides[1], x_pad.strides[2]),
+            writeable=False
+        )   
+        return windows.max(axis=(3, 4)).astype(NEUOUT_U8_DTYPE)
+        
 
     def build(self, network: "DynSysGroup", **build_options) -> BuiltComponentType:
         cin, ih, iw = self.source[0].shape_out
@@ -1607,11 +1630,38 @@ class AvgPooling2d(FunctionalModule):
         )
 
     def spike_func(self, x1: NeuOutType, **kwargs) -> NeuOutType:
-        output = x1 @ self.weights.astype(VOLTAGE_DTYPE)
-        output = output + self.bias
-        output = np.where(output >= 1, MetaNeuron._truncate(output, self.bit_trunc), 0)
+        c, h, w = self.source[0].shape_out
+        x_3d = x1.reshape(c, h, w)
+        kh, kw = self.kernel_size
+        sh, sw = self.stride
+        ph, pw = self.padding
 
-        return output.astype(NEUOUT_U8_DTYPE)
+        pool_size = kh * kw
+        shift_bits = (pool_size.bit_length() - 1)
+        
+        padded = np.zeros((c, h + 2*ph, w + 2*pw), dtype=x_3d.dtype)
+        padded[:, ph:ph+h, pw:pw+w] = x_3d
+
+        _, out_h, out_w = self.shape_out
+        strides = (
+            padded.strides[0],         
+            sh * padded.strides[1],    
+            sw * padded.strides[2],    #
+            padded.strides[1],         # 
+            padded.strides[2]          # 
+        )
+        
+        windows = as_strided(
+            padded,
+            shape=(c, out_h, out_w, kh, kw),
+            strides=strides,
+            writeable=False
+        )
+
+        sum_window = windows.sum(axis=(3,4), dtype=np.int8)          
+        avg = (sum_window + (1 << (shift_bits - 1))) >> shift_bits    
+        
+        return avg.astype(NEUOUT_U8_DTYPE)
 
     def build(self, network: "DynSysGroup", **build_options) -> BuiltComponentType:
         cin, ih, iw = self.source[0].shape_out
