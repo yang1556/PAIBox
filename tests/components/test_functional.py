@@ -1478,7 +1478,7 @@ class TestFunctionalModules:
         ],
     )
 
-    def test_ANNPooling(self,
+    def test_ANNPooling2d(self,
         ishape_chw,
         n_pool,
         kshape_hw,
@@ -1569,6 +1569,122 @@ class TestFunctionalModules:
                 x = _ann_bit_trunc(
                     _pool_op[pool_type](
                         x, ksizes[i_pool], strides[i_pool], paddings[i_pool]
+                    )
+                )
+                assert np.array_equal(x.ravel(), sim1.data[probe_pool_list[i_pool]][2 * i_pool])
+
+
+    # 定义测试参数
+    @pytest.mark.parametrize(
+        "ishape_cl, n_pool, kshape_l, stride, padding, out_features, pool_type",
+        [
+            # n_pool = 1
+            ((1, 8), 1, [2], [2], [1], (10,), "max"),  # 1通道，序列长度8
+            # ((3, 16), 1, [2], [2], [1], (10,), "avg"),  # 3通道，序列长度16
+            # # n_pool = 2
+            ((1, 8), 2, [2, 2], [2, 2], [0, 0], (2,), "max"),  # 1通道，序列长度8
+            #
+            # ((3, 24), 2, [2, 2], [None, None], [0, 0], (10,), "avg"),  # 3通道，序列长度24
+            ((3, 24), 2, [2, 2], [1, 1], [], (4,), "max"),  # 3通道，序列长度24
+            ((6, 32), 2, [3, 3], [None, None], [], (10,), "max"),  # 6通道，序列长度32
+        ],
+    )
+    def test_ANNPooling1d(self,
+            ishape_cl,
+            n_pool,
+            kshape_l,
+            stride,
+            padding,
+            out_features,
+            pool_type,
+            fixed_rng: np.random.Generator,
+    ):
+        from tests.shared_networks import Pool1d_FC_ChainNetN
+
+        # 如果池化类型是最大池化，填充设置为0
+        if pool_type == "max":
+            padding = [(0, 0)] * n_pool
+
+        # 检查参数长度是否一致
+        assert n_pool == len(kshape_l) == len(stride)
+
+        # 初始化池化参数
+        ksizes = []
+        strides = []
+        paddings = []
+        ocs = []
+        ols = []
+
+        for i_pool in range(n_pool):
+            k, s, p = (kshape_l[i_pool], stride[i_pool], padding[i_pool])
+
+            _ksize = k if isinstance(k, int) else k[0]
+            _stride = s if s is not None else _ksize
+            _padding = p if isinstance(p, int) else p[0]
+            ksizes.append(_ksize)
+            strides.append(_stride)
+            paddings.append(_padding)
+
+            il = ishape_cl[1] if i_pool == 0 else ols[-1]
+            oc = ishape_cl[0]
+            ol = (il - _ksize + 2 * paddings[i_pool]) // _stride + 1
+            ocs.append(oc)
+            ols.append(ol)
+
+        # 生成全连接层的权重
+        fc_weight = fixed_rng.integers(
+            -4,
+            5,
+            size=(ocs[-1] * ols[-1], shape2num(out_features)),
+            dtype=WEIGHT_DTYPE,
+        )
+
+        # 创建网络
+        net1 = Pool1d_FC_ChainNetN(
+            ishape_cl,
+            ksizes,
+            strides,
+            paddings,
+            out_features,
+            fc_weight,
+            pool_type,
+        )
+
+        # 获取池化层列表和全连接层
+        pool1d_list = net1.pool_list.copy()
+        linear = net1.linear1
+        generated = net1.build_modules()
+        sim1 = pb.Simulator(net1, start_time_zero=False)
+
+        # 添加探针
+        probe_pool_list = []
+        for pool1d in pool1d_list:
+            probe = pb.Probe(generated[pool1d][0], "output")
+            probe_pool_list.append(probe)
+            sim1.add_probe(probe)
+
+        probe_linear = pb.Probe(generated[linear][0], "output")
+        sim1.add_probe(probe_linear)
+
+        # 定义池化操作
+        _pool_op = {"avg": avgpool1d_golden, "max": maxpool1d_golden}
+
+        # 运行测试
+        n_test = 1  # 测试次数
+        for _ in range(n_test):
+            sim1.reset()
+            inpa = fixed_rng.integers(256, size=ishape_cl).astype(NEUOUT_U8_DTYPE)
+
+            for i in range(3):
+                pb.FRONTEND_ENV.save(data1=inpa)
+                sim1.run(1)
+
+            # 验证池化输出
+            x = inpa
+            for i_pool in range(n_pool):
+                x = _ann_bit_trunc(
+                    _pool_op[pool_type](
+                        x, _pair(ksizes[i_pool]), _pair(strides[i_pool]), _pair(paddings[i_pool])
                     )
                 )
                 assert np.array_equal(x.ravel(), sim1.data[probe_pool_list[i_pool]][2 * i_pool])
