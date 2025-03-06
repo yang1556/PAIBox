@@ -15,6 +15,8 @@ from .components.functional import LinearSemiFolded as LinearSemiFolded
 from .components.functional import MaxPool2dSemiFolded as MaxPool2dSemiFolded
 from .components.functional import MaxPooling2d as MaxPooling2d
 from .components.functional import AvgPooling2d as AvgPooling2d
+from .components.functional import MaxPooling1d as MaxPooling1d
+from .components.functional import AvgPooling1d as AvgPooling1d
 
 
 # Functional modules in SNN mode only
