@@ -1580,11 +1580,11 @@ class TestFunctionalModules:
         [
             # n_pool = 1
             ((1, 8), 1, [2], [2], [1], (10,), "max"),  # 1通道，序列长度8
-            # ((3, 16), 1, [2], [2], [1], (10,), "avg"),  # 3通道，序列长度16
-            # # n_pool = 2
+            ((2, 8), 1, [2], [2], [0], (10,), "avg"),  # 3通道，序列长度16
+            # n_pool = 2
             ((1, 8), 2, [2, 2], [2, 2], [0, 0], (2,), "max"),  # 1通道，序列长度8
-            #
-            # ((3, 24), 2, [2, 2], [None, None], [0, 0], (10,), "avg"),  # 3通道，序列长度24
+
+            ((3, 24), 2, [2, 2], [None, None], [0, 0], (10,), "avg"),  # 3通道，序列长度24
             ((3, 24), 2, [2, 2], [1, 1], [], (4,), "max"),  # 3通道，序列长度24
             ((6, 32), 2, [3, 3], [None, None], [], (10,), "max"),  # 6通道，序列长度32
         ],
@@ -1620,14 +1620,14 @@ class TestFunctionalModules:
 
             _ksize = k if isinstance(k, int) else k[0]
             _stride = s if s is not None else _ksize
-            _padding = p if isinstance(p, int) else p[0]
+            _padding = _pair(p)
             ksizes.append(_ksize)
             strides.append(_stride)
             paddings.append(_padding)
 
             il = ishape_cl[1] if i_pool == 0 else ols[-1]
             oc = ishape_cl[0]
-            ol = (il - _ksize + 2 * paddings[i_pool]) // _stride + 1
+            ol = (il - _ksize + 2 * paddings[i_pool][0]) // _stride + 1
             ocs.append(oc)
             ols.append(ol)
 
@@ -1684,9 +1684,10 @@ class TestFunctionalModules:
             for i_pool in range(n_pool):
                 x = _ann_bit_trunc(
                     _pool_op[pool_type](
-                        x, _pair(ksizes[i_pool]), _pair(strides[i_pool]), _pair(paddings[i_pool])
+                        x, _pair(ksizes[i_pool]), _pair(strides[i_pool]), paddings[i_pool], 0
                     )
                 )
+
                 assert np.array_equal(x.ravel(), sim1.data[probe_pool_list[i_pool]][2 * i_pool])
 
 
