@@ -417,26 +417,26 @@ class Neuron(MetaNeuron, NeuDyn):
     def __init__(
         self,
         shape: Shape,
-        reset_mode: RM = RM.MODE_NORMAL,
-        reset_v: int = 0,
-        leak_comparison: LCM = LCM.LEAK_BEFORE_COMP,
+        reset_mode: RM = RM.MODE_NORMAL, #ram
+        reset_v: int = 0, # ram
+        leak_comparison: LCM = LCM.LEAK_BEFORE_COMP, #ram leak_post
         threshold_mask_bits: int = 0,
-        neg_thres_mode: NTM = NTM.MODE_RESET,
-        neg_threshold: Optional[int] = None,
-        pos_threshold: int = 1,
+        neg_thres_mode: NTM = NTM.MODE_RESET, #ram  threshold_neg_mode
+        neg_threshold: Optional[int] = None, #ram
+        pos_threshold: int = 1, #ram
         leak_direction: LDM = LDM.MODE_FORWARD,
-        leak_integration_mode: Union[L[0, 1], bool, LIM] = LIM.MODE_DETERMINISTIC,
-        leak_v: Union[int, LeakVType] = 0,
-        synaptic_integration_mode: Union[L[0, 1], bool, SIM] = SIM.MODE_DETERMINISTIC,
-        bit_truncation: int = 8,
+        leak_integration_mode: Union[L[0, 1], bool, LIM] = LIM.MODE_DETERMINISTIC, #ram leak_det_stoch
+        leak_v: Union[int, LeakVType] = 0, #ram
+        synaptic_integration_mode: Union[L[0, 1], bool, SIM] = SIM.MODE_DETERMINISTIC, #  ram weight_det_stoch
+        bit_truncation: int = 8, #ram
         *,
         delay: int = 1,
         tick_wait_start: int = 1,
         tick_wait_end: int = 0,
-        input_width: Union[L[1, 8], InputWidthFormat] = InputWidthFormat.WIDTH_1BIT,
-        spike_width: Union[L[1, 8], SpikeWidthFormat] = SpikeWidthFormat.WIDTH_1BIT,
-        snn_en: Union[bool, SNNModeEnable] = True,
-        pool_max: Union[bool, MaxPoolingEnable] = False,
+        input_width: Union[L[1, 8], InputWidthFormat] = InputWidthFormat.WIDTH_1BIT, #reg
+        spike_width: Union[L[1, 8], SpikeWidthFormat] = SpikeWidthFormat.WIDTH_1BIT, #reg
+        snn_en: Union[bool, SNNModeEnable] = True, #reg
+        pool_max: Union[bool, MaxPoolingEnable] = False, #reg
         unrolling_factor: int = 1,
         overflow_strict: bool = False,
         keep_shape: bool = True,
