@@ -466,18 +466,59 @@ class CoreNeuronV25(MemoryModule):
 
         return v
 
-    def _apply_tau_shift(self, v: Tensor) -> Tensor:
-        """Apply bit-shift scaling derived from ``leak_tau`` to *v*."""
-        if v.is_floating_point():
-            if self.leak_tau >= 0:
-                return v * (2.0**self.leak_tau)
-            else:
-                return v / (2.0 ** (-self.leak_tau))
+    def _leak_tau_for(self, v: Tensor) -> int | Tensor:
+        """Return scalar shift or a channel-broadcast tensor matching *v*.
 
-        if self.leak_tau >= 0:
-            return v << self.leak_tau
-        else:
-            return v >> (-self.leak_tau)
+        Broadcasting is resolved against the operand rather than ``self.v``
+        because the shift is also applied to the incoming current, which reaches
+        here before the membrane state has been charged.
+        """
+        if not torch.is_tensor(self.leak_tau):
+            return self.leak_tau
+        if v.ndim < 2:
+            raise ValueError(
+                "per-channel 'leak_tau' requires neuron state with a channel dimension"
+            )
+        if v.shape[1] != self.leak_tau.numel():
+            raise ValueError(
+                f"per-channel 'leak_tau' has {self.leak_tau.numel()} element(s) "
+                f"but neuron state channel count is {v.shape[1]}"
+            )
+
+        tau = self.leak_tau.to(device=v.device)
+        return tau.reshape(_channel_broadcast_shape(v.ndim, tau.numel()))
+
+    def _apply_tau_shift(self, v: Tensor) -> Tensor:
+        """Apply bit-shift scaling derived from ``leak_tau`` to *v*.
+
+        A per-channel shift is what realises per-channel weight scales on an
+        offline core: the activation LUT is a per-core resource, so channels
+        cannot each carry their own requantization curve, and this shift is the
+        only per-neuron rescaling the hardware offers.
+        """
+        tau = self._leak_tau_for(v)
+
+        if not torch.is_tensor(tau):
+            if v.is_floating_point():
+                if tau >= 0:
+                    return v * (2.0**tau)
+                else:
+                    return v / (2.0 ** (-tau))
+
+            if tau >= 0:
+                return v << tau
+            else:
+                return v >> (-tau)
+
+        if v.is_floating_point():
+            # Equivalent to the scalar branches for either sign of the exponent.
+            return v * torch.pow(2.0, tau.to(v.dtype))
+
+        # Shifting by a negative amount is undefined, so each direction is
+        # evaluated on a clamped exponent and selected afterwards.
+        left = v << tau.clamp(min=0)
+        right = v >> (-tau).clamp(min=0)
+        return torch.where(tau >= 0, left, right)
 
     def _multiplicative_leak(self) -> Tensor:
         """Apply the V2.5 leak mode selected by the neuron register."""
@@ -498,13 +539,15 @@ class CoreNeuronV25(MemoryModule):
             )
 
     def _validate_simulation_params(self) -> None:
+        # ``leak_tau`` is absent on purpose: a per-channel shift is simulated by
+        # broadcasting it over the channel axis, matching what the backend
+        # already exported for per-channel weight scales.
         unsupported = [
             name
             for name in (
                 "reset_v",
                 "thres_neg",
                 "leak_multi_mode",
-                "leak_tau",
                 "init_v",
             )
             if torch.is_tensor(getattr(self, name))

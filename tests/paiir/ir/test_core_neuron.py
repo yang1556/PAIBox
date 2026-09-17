@@ -371,7 +371,7 @@ class TestVectorNeuronParameters:
 
     @pytest.mark.parametrize(
         "field",
-        ["reset_v", "thres_neg", "leak_tau_shift", "init_v"],
+        ["reset_v", "thres_neg", "init_v"],
     )
     def test_new_vector_fields_are_compile_only(self, field):
         kwargs = {field: torch.tensor([0, 0])}
@@ -379,6 +379,39 @@ class TestVectorNeuronParameters:
 
         with pytest.raises(NotImplementedError, match="compile the model"):
             node(torch.tensor([[1, 1]]))
+
+    def test_vector_shift_simulates_per_channel(self):
+        """Per-channel weight scales are realised by this shift, so simulating
+        it is what lets such a configuration be evaluated rather than only
+        deployed."""
+        node = CoreNeuronV25(
+            thres_pos=10**6,
+            leak_tau_shift=torch.tensor([0, 1, 2]),
+            leak_multi_mode=LeakMultiMode.DISABLE,
+            leak_multi_sequence=LeakMultiComparisonOrder.BEFORE_COMPARE,
+        )
+
+        node(torch.tensor([[4.0, 4.0, 4.0]]))
+
+        assert node.v.flatten().tolist() == [4.0, 8.0, 16.0]
+
+    def test_vector_shift_broadcasts_over_spatial_dimensions(self):
+        node = CoreNeuronV25(
+            thres_pos=10**6,
+            leak_tau_shift=torch.tensor([0, 1]),
+            leak_multi_mode=LeakMultiMode.DISABLE,
+            leak_multi_sequence=LeakMultiComparisonOrder.BEFORE_COMPARE,
+        )
+
+        node(torch.full((1, 2, 2, 2), 3.0))
+
+        assert node.v[0, :, 0, 0].tolist() == [3.0, 6.0]
+
+    def test_vector_shift_rejects_a_channel_count_mismatch(self):
+        node = CoreNeuronV25(thres_pos=10**6, leak_tau_shift=torch.tensor([0, 1, 2]))
+
+        with pytest.raises(ValueError, match="channel count"):
+            node(torch.tensor([[1.0, 1.0]]))
 
     def test_shift_tensor_requires_integer_dtype(self):
         with pytest.raises(TypeError, match="integer dtype"):
