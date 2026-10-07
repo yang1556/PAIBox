@@ -112,6 +112,35 @@ PYTHONPATH=../quant_tool uv run python experiments/deploy.py --eval
 **可以直接复用的东西**(`QuantizedConvAddReLU2dOp` 与前端无关,残差不需要复刻
 torch.ao 的模式识别)。
 
+### 目标形态,以及离它还差什么
+
+项目完整的样子是一条闭合的链:
+
+```
+torch 模型
+  → 识别图      哪些是量化 site、谁是谁的前驱、激活挂在哪
+  → 替换图      装观测器 / 换成芯片神经元
+  → 量化        按选定的粒度与标定算法定出 scale
+  → convert     产出 QuantSpec(声明式契约,硬件无关)
+  → PAIBox      按 spec 物化整数权重、填 LUT、配移位,编译布放
+```
+
+**这就是现在的分工,不需要改架构** —— quant_tool 做决策,`QuantSpec` 过契约,
+PAIBox 执行。缺的是每一环里的具体能力。逐环对照:
+
+| 环节 | 现状 | 缺口 |
+| --- | --- | --- |
+| 识别图 | `topology.py`,FX 提取 site 拓扑序/前驱/激活路径,神经元当叶子 | **分支拓扑**。残差会响亮报错并说明缺什么(这是故意的,早先是静默串错 scale 链) |
+| 替换图 | quant_tool 侧 `apply_mode` 装观测器(含 SpikingJelly 层);PAIBox 侧 `export` 换芯片神经元 | **融合阻断标注** —— per-group 路径 A 的前提,现在只能靠"假消费者" |
+| 做量化 | 标定在 quant_tool,整数物化/LUT/移位在 PAIBox | **伪量化中间参照缺失**。vendored modelopt 的 `_fake_quantize` 整段被注释,所以无法做"float → 伪量化 → 芯片仿真"的三段对比,**分不清精度损失来自量化决策还是部署环节** |
+| 不同粒度 | per-tensor ✓、per-channel ✓(已打通并实测) | **per-group ✗** —— `export.py` 显式抛 `UnsupportedConfig`。这就是"把 PAIBox 里还没支持的粒度实现"那一项,见 §7 |
+| 不同算法 | max / percentile / MSE / Pow2Mse ✓ | histogram-KL(vendored 的方法体被注释掉了);QAT 完全没有,现在全是 PTQ |
+| convert | `QuantSpec` + `LayerQuant` + `WeightQuant` + `AnnActivation` / `SnnActivation` | 表达不了 **per-group**、**残差的 $M,n$**、**逐层 ANN/SNN 模式选择** —— 三者都是第四章要补的 |
+
+**关键路径是 per-group**:它同时卡住"替换图"(要融合阻断)、"不同粒度"
+(PAIBox 侧要实现路径 A)和"convert"(`QuantSpec` 要能表达分组)三环,
+是唯一一个横跨三环的缺口。
+
 ---
 
 ## 5. 已验证的数字,以及它们的口径
