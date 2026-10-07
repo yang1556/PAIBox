@@ -1,0 +1,109 @@
+{
+  "channels": [
+    32,
+    64
+  ],
+  "fc": 256,
+  "float_accuracy": 0.9866,
+  "points": [
+    {
+      "weight_bits": 8,
+      "act_bits": 8,
+      "ok": true,
+      "cores": 24,
+      "accuracy": 0.994140625,
+      "depth": 6,
+      "max_lcn": 7,
+      "seconds": 20.708340749988565,
+      "error": ""
+    },
+    {
+      "weight_bits": 8,
+      "act_bits": 4,
+      "ok": true,
+      "cores": 21,
+      "accuracy": 0.9921875,
+      "depth": 6,
+      "max_lcn": 7,
+      "seconds": 12.602361208002549,
+      "error": ""
+    },
+    {
+      "weight_bits": 8,
+      "act_bits": 2,
+      "ok": true,
+      "cores": 20,
+      "accuracy": 0.658203125,
+      "depth": 6,
+      "max_lcn": 7,
+      "seconds": 11.014166917011607,
+      "error": ""
+    },
+    {
+      "weight_bits": 4,
+      "act_bits": 8,
+      "ok": true,
+      "cores": 18,
+      "accuracy": 0.994140625,
+      "depth": 6,
+      "max_lcn": 7,
+      "seconds": 20.069288083992433,
+      "error": ""
+    },
+    {
+      "weight_bits": 4,
+      "act_bits": 4,
+      "ok": true,
+      "cores": 15,
+      "accuracy": 0.986328125,
+      "depth": 6,
+      "max_lcn": 7,
+      "seconds": 10.588032958999975,
+      "error": ""
+    },
+    {
+      "weight_bits": 4,
+      "act_bits": 2,
+      "ok": true,
+      "cores": 14,
+      "accuracy": 0.6953125,
+      "depth": 6,
+      "max_lcn": 7,
+      "seconds": 11.748651750007411,
+      "error": ""
+    },
+    {
+      "weight_bits": 2,
+      "act_bits": 8,
+      "ok": true,
+      "cores": 15,
+      "accuracy": 0.97265625,
+      "depth": 6,
+      "max_lcn": 7,
+      "seconds": 18.175310874998104,
+      "error": ""
+    },
+    {
+      "weight_bits": 2,
+      "act_bits": 4,
+      "ok": true,
+      "cores": 12,
+      "accuracy": 0.96484375,
+      "depth": 6,
+      "max_lcn": 7,
+      "seconds": 11.658493249997264,
+      "error": ""
+    },
+    {
+      "weight_bits": 2,
+      "act_bits": 2,
+      "ok": true,
+      "cores": 11,
+      "accuracy": 0.453125,
+      "depth": 6,
+      "max_lcn": 7,
+      "seconds": 10.840081541973632,
+      "error": ""
+    }
+  ]
+}

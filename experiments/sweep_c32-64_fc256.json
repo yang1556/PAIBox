@@ -1,0 +1,1914 @@
+{
+  "spec": {
+    "in_shape": [
+      1,
+      28,
+      28
+    ],
+    "channels": [
+      32,
+      64
+    ],
+    "fc": 256,
+    "classes": 10
+  },
+  "results": [
+    {
+      "label": "weight-8bit",
+      "widths": [
+        8,
+        8,
+        8,
+        8
+      ],
+      "weight_bits": 8,
+      "ok": true,
+      "error": "",
+      "seconds": 14.599529458006145,
+      "groups": [
+        {
+          "name": "RG_1",
+          "n_core": 2,
+          "lcn": 4,
+          "aer_area": 2,
+          "n_elems": 25088,
+          "n_inputs": 900
+        },
+        {
+          "name": "RG_6",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 1792,
+          "n_inputs": 7168
+        },
+        {
+          "name": "RG_7",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 1792,
+          "n_inputs": 7168
+        },
+        {
+          "name": "RG_8",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 1792,
+          "n_inputs": 7168
+        },
+        {
+          "name": "RG_9",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 896,
+          "n_inputs": 3584
+        },
+        {
+          "name": "RG_3",
+          "n_core": 2,
+          "lcn": 7,
+          "aer_area": 2,
+          "n_elems": 12544,
+          "n_inputs": 8192
+        },
+        {
+          "name": "RG_10",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 1792,
+          "n_inputs": 7168
+        },
+        {
+          "name": "RG_11",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 1344,
+          "n_inputs": 5376
+        },
+        {
+          "name": "RG_4",
+          "n_core": 13,
+          "lcn": 6,
+          "aer_area": 13,
+          "n_elems": 256,
+          "n_inputs": 3136
+        },
+        {
+          "name": "RG_5",
+          "n_core": 1,
+          "lcn": 2,
+          "aer_area": 1,
+          "n_elems": 10,
+          "n_inputs": 256
+        }
+      ],
+      "sram": [
+        4051,
+        2671,
+        452,
+        452,
+        452,
+        228,
+        4064,
+        3160,
+        1794,
+        1346,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3153,
+        171
+      ],
+      "out_widths": [
+        8,
+        8,
+        8,
+        8,
+        8,
+        8
+      ],
+      "wt_widths": [
+        8,
+        1,
+        8,
+        1,
+        8,
+        8
+      ],
+      "cores_needed": 24,
+      "cores_occupied": 24
+    },
+    {
+      "label": "weight-4bit",
+      "widths": [
+        8,
+        8,
+        8,
+        8
+      ],
+      "weight_bits": 4,
+      "ok": true,
+      "error": "",
+      "seconds": 14.841758875001688,
+      "groups": [
+        {
+          "name": "RG_1",
+          "n_core": 2,
+          "lcn": 4,
+          "aer_area": 2,
+          "n_elems": 25088,
+          "n_inputs": 900
+        },
+        {
+          "name": "RG_6",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 1792,
+          "n_inputs": 7168
+        },
+        {
+          "name": "RG_7",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 1792,
+          "n_inputs": 7168
+        },
+        {
+          "name": "RG_8",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 1792,
+          "n_inputs": 7168
+        },
+        {
+          "name": "RG_9",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 896,
+          "n_inputs": 3584
+        },
+        {
+          "name": "RG_3",
+          "n_core": 2,
+          "lcn": 7,
+          "aer_area": 2,
+          "n_elems": 12544,
+          "n_inputs": 8192
+        },
+        {
+          "name": "RG_10",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 1792,
+          "n_inputs": 7168
+        },
+        {
+          "name": "RG_11",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 1344,
+          "n_inputs": 5376
+        },
+        {
+          "name": "RG_4",
+          "n_core": 7,
+          "lcn": 6,
+          "aer_area": 7,
+          "n_elems": 256,
+          "n_inputs": 3136
+        },
+        {
+          "name": "RG_5",
+          "n_core": 1,
+          "lcn": 2,
+          "aer_area": 1,
+          "n_elems": 10,
+          "n_inputs": 256
+        }
+      ],
+      "sram": [
+        4051,
+        2670,
+        452,
+        452,
+        452,
+        228,
+        4093,
+        2367,
+        1794,
+        1346,
+        4060,
+        4060,
+        4060,
+        4060,
+        4060,
+        4060,
+        991,
+        91
+      ],
+      "out_widths": [
+        8,
+        8,
+        8,
+        8,
+        8,
+        8
+      ],
+      "wt_widths": [
+        4,
+        1,
+        4,
+        1,
+        4,
+        4
+      ],
+      "cores_needed": 18,
+      "cores_occupied": 18
+    },
+    {
+      "label": "weight-2bit",
+      "widths": [
+        8,
+        8,
+        8,
+        8
+      ],
+      "weight_bits": 2,
+      "ok": true,
+      "error": "",
+      "seconds": 14.232920542010106,
+      "groups": [
+        {
+          "name": "RG_1",
+          "n_core": 2,
+          "lcn": 4,
+          "aer_area": 2,
+          "n_elems": 25088,
+          "n_inputs": 900
+        },
+        {
+          "name": "RG_6",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 1792,
+          "n_inputs": 7168
+        },
+        {
+          "name": "RG_7",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 1792,
+          "n_inputs": 7168
+        },
+        {
+          "name": "RG_8",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 1792,
+          "n_inputs": 7168
+        },
+        {
+          "name": "RG_9",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 896,
+          "n_inputs": 3584
+        },
+        {
+          "name": "RG_3",
+          "n_core": 2,
+          "lcn": 7,
+          "aer_area": 2,
+          "n_elems": 12544,
+          "n_inputs": 8192
+        },
+        {
+          "name": "RG_10",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 1792,
+          "n_inputs": 7168
+        },
+        {
+          "name": "RG_11",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 1344,
+          "n_inputs": 5376
+        },
+        {
+          "name": "RG_4",
+          "n_core": 4,
+          "lcn": 6,
+          "aer_area": 4,
+          "n_elems": 256,
+          "n_inputs": 3136
+        },
+        {
+          "name": "RG_5",
+          "n_core": 1,
+          "lcn": 2,
+          "aer_area": 1,
+          "n_elems": 10,
+          "n_inputs": 256
+        }
+      ],
+      "sram": [
+        4090,
+        2599,
+        452,
+        452,
+        452,
+        228,
+        4070,
+        1463,
+        1794,
+        1346,
+        4051,
+        4051,
+        4051,
+        651,
+        51
+      ],
+      "out_widths": [
+        8,
+        8,
+        8,
+        8,
+        8,
+        8
+      ],
+      "wt_widths": [
+        2,
+        1,
+        2,
+        1,
+        2,
+        2
+      ],
+      "cores_needed": 15,
+      "cores_occupied": 15
+    },
+    {
+      "label": "weight-1bit",
+      "widths": [
+        8,
+        8,
+        8,
+        8
+      ],
+      "weight_bits": 1,
+      "ok": true,
+      "error": "",
+      "seconds": 8.526305916995625,
+      "groups": [
+        {
+          "name": "RG_1",
+          "n_core": 2,
+          "lcn": 4,
+          "aer_area": 2,
+          "n_elems": 25088,
+          "n_inputs": 900
+        },
+        {
+          "name": "RG_6",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 1792,
+          "n_inputs": 7168
+        },
+        {
+          "name": "RG_7",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 1792,
+          "n_inputs": 7168
+        },
+        {
+          "name": "RG_8",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 1792,
+          "n_inputs": 7168
+        },
+        {
+          "name": "RG_9",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 896,
+          "n_inputs": 3584
+        },
+        {
+          "name": "RG_3",
+          "n_core": 2,
+          "lcn": 7,
+          "aer_area": 2,
+          "n_elems": 12544,
+          "n_inputs": 8192
+        },
+        {
+          "name": "RG_10",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 1792,
+          "n_inputs": 7168
+        },
+        {
+          "name": "RG_11",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 1344,
+          "n_inputs": 5376
+        },
+        {
+          "name": "RG_4",
+          "n_core": 2,
+          "lcn": 6,
+          "aer_area": 2,
+          "n_elems": 256,
+          "n_inputs": 3136
+        },
+        {
+          "name": "RG_5",
+          "n_core": 1,
+          "lcn": 2,
+          "aer_area": 1,
+          "n_elems": 10,
+          "n_inputs": 256
+        }
+      ],
+      "sram": [
+        4090,
+        3751,
+        452,
+        452,
+        452,
+        228,
+        4096,
+        798,
+        1794,
+        1346,
+        4083,
+        2575,
+        31
+      ],
+      "out_widths": [
+        8,
+        8,
+        8,
+        8,
+        8,
+        8
+      ],
+      "wt_widths": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "cores_needed": 13,
+      "cores_occupied": 13
+    },
+    {
+      "label": "act-4bit",
+      "widths": [
+        4,
+        4,
+        4,
+        4
+      ],
+      "weight_bits": 8,
+      "ok": true,
+      "error": "",
+      "seconds": 5.763640834004036,
+      "groups": [
+        {
+          "name": "RG_1",
+          "n_core": 2,
+          "lcn": 4,
+          "aer_area": 2,
+          "n_elems": 25088,
+          "n_inputs": 900
+        },
+        {
+          "name": "RG_6",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 4032,
+          "n_inputs": 16128
+        },
+        {
+          "name": "RG_7",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 2240,
+          "n_inputs": 8960
+        },
+        {
+          "name": "RG_3",
+          "n_core": 2,
+          "lcn": 6,
+          "aer_area": 2,
+          "n_elems": 12544,
+          "n_inputs": 8192
+        },
+        {
+          "name": "RG_2",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 3136,
+          "n_inputs": 12544
+        },
+        {
+          "name": "RG_4",
+          "n_core": 13,
+          "lcn": 5,
+          "aer_area": 13,
+          "n_elems": 256,
+          "n_inputs": 3136
+        },
+        {
+          "name": "RG_5",
+          "n_core": 1,
+          "lcn": 1,
+          "aer_area": 1,
+          "n_elems": 10,
+          "n_inputs": 256
+        }
+      ],
+      "sram": [
+        4080,
+        2448,
+        1012,
+        564,
+        4065,
+        2967,
+        788,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3153,
+        171
+      ],
+      "out_widths": [
+        4,
+        4,
+        4,
+        4,
+        4,
+        4
+      ],
+      "wt_widths": [
+        8,
+        1,
+        8,
+        1,
+        8,
+        8
+      ],
+      "cores_needed": 21,
+      "cores_occupied": 21
+    },
+    {
+      "label": "act-2bit",
+      "widths": [
+        2,
+        2,
+        2,
+        2
+      ],
+      "weight_bits": 8,
+      "ok": true,
+      "error": "",
+      "seconds": 5.012937874998897,
+      "groups": [
+        {
+          "name": "RG_1",
+          "n_core": 2,
+          "lcn": 4,
+          "aer_area": 2,
+          "n_elems": 25088,
+          "n_inputs": 900
+        },
+        {
+          "name": "RG_0",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 6272,
+          "n_inputs": 25088
+        },
+        {
+          "name": "RG_3",
+          "n_core": 2,
+          "lcn": 5,
+          "aer_area": 2,
+          "n_elems": 12544,
+          "n_inputs": 8192
+        },
+        {
+          "name": "RG_2",
+          "n_core": 1,
+          "lcn": 6,
+          "aer_area": 1,
+          "n_elems": 3136,
+          "n_inputs": 12544
+        },
+        {
+          "name": "RG_4",
+          "n_core": 13,
+          "lcn": 4,
+          "aer_area": 13,
+          "n_elems": 256,
+          "n_inputs": 3136
+        },
+        {
+          "name": "RG_5",
+          "n_core": 1,
+          "lcn": 0,
+          "aer_area": 1,
+          "n_elems": 10,
+          "n_inputs": 256
+        }
+      ],
+      "sram": [
+        4020,
+        2412,
+        1572,
+        4065,
+        2967,
+        788,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3153,
+        171
+      ],
+      "out_widths": [
+        2,
+        2,
+        2,
+        2,
+        2,
+        2
+      ],
+      "wt_widths": [
+        8,
+        1,
+        8,
+        1,
+        8,
+        8
+      ],
+      "cores_needed": 20,
+      "cores_occupied": 20
+    },
+    {
+      "label": "act-1bit",
+      "widths": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "weight_bits": 8,
+      "ok": true,
+      "error": "",
+      "seconds": 5.153889124994748,
+      "groups": [
+        {
+          "name": "RG_1",
+          "n_core": 2,
+          "lcn": 4,
+          "aer_area": 2,
+          "n_elems": 25088,
+          "n_inputs": 900
+        },
+        {
+          "name": "RG_0",
+          "n_core": 1,
+          "lcn": 6,
+          "aer_area": 1,
+          "n_elems": 6272,
+          "n_inputs": 25088
+        },
+        {
+          "name": "RG_3",
+          "n_core": 2,
+          "lcn": 4,
+          "aer_area": 2,
+          "n_elems": 12544,
+          "n_inputs": 8192
+        },
+        {
+          "name": "RG_2",
+          "n_core": 1,
+          "lcn": 5,
+          "aer_area": 1,
+          "n_elems": 3136,
+          "n_inputs": 12544
+        },
+        {
+          "name": "RG_4",
+          "n_core": 13,
+          "lcn": 3,
+          "aer_area": 13,
+          "n_elems": 256,
+          "n_inputs": 3136
+        },
+        {
+          "name": "RG_5",
+          "n_core": 1,
+          "lcn": 0,
+          "aer_area": 1,
+          "n_elems": 10,
+          "n_inputs": 256
+        }
+      ],
+      "sram": [
+        4020,
+        2412,
+        1572,
+        4065,
+        2967,
+        788,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3153,
+        171
+      ],
+      "out_widths": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "wt_widths": [
+        8,
+        1,
+        8,
+        1,
+        8,
+        8
+      ],
+      "cores_needed": 20,
+      "cores_occupied": 20
+    },
+    {
+      "label": "act-L0-4bit",
+      "widths": [
+        4,
+        8,
+        8,
+        8
+      ],
+      "weight_bits": 8,
+      "ok": true,
+      "error": "",
+      "seconds": 9.248317667006631,
+      "groups": [
+        {
+          "name": "RG_1",
+          "n_core": 2,
+          "lcn": 4,
+          "aer_area": 2,
+          "n_elems": 25088,
+          "n_inputs": 900
+        },
+        {
+          "name": "RG_6",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 4032,
+          "n_inputs": 16128
+        },
+        {
+          "name": "RG_7",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 2240,
+          "n_inputs": 8960
+        },
+        {
+          "name": "RG_3",
+          "n_core": 2,
+          "lcn": 6,
+          "aer_area": 2,
+          "n_elems": 12544,
+          "n_inputs": 8192
+        },
+        {
+          "name": "RG_8",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 1792,
+          "n_inputs": 7168
+        },
+        {
+          "name": "RG_9",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 1344,
+          "n_inputs": 5376
+        },
+        {
+          "name": "RG_4",
+          "n_core": 13,
+          "lcn": 6,
+          "aer_area": 13,
+          "n_elems": 256,
+          "n_inputs": 3136
+        },
+        {
+          "name": "RG_5",
+          "n_core": 1,
+          "lcn": 2,
+          "aer_area": 1,
+          "n_elems": 10,
+          "n_inputs": 256
+        }
+      ],
+      "sram": [
+        4080,
+        2448,
+        1012,
+        564,
+        4064,
+        3160,
+        1794,
+        1346,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3153,
+        171
+      ],
+      "out_widths": [
+        4,
+        4,
+        8,
+        8,
+        8,
+        8
+      ],
+      "wt_widths": [
+        8,
+        1,
+        8,
+        1,
+        8,
+        8
+      ],
+      "cores_needed": 22,
+      "cores_occupied": 22
+    },
+    {
+      "label": "act-L0-1bit",
+      "widths": [
+        1,
+        8,
+        8,
+        8
+      ],
+      "weight_bits": 8,
+      "ok": true,
+      "error": "",
+      "seconds": 6.559349791990826,
+      "groups": [
+        {
+          "name": "RG_1",
+          "n_core": 2,
+          "lcn": 4,
+          "aer_area": 2,
+          "n_elems": 25088,
+          "n_inputs": 900
+        },
+        {
+          "name": "RG_0",
+          "n_core": 1,
+          "lcn": 6,
+          "aer_area": 1,
+          "n_elems": 6272,
+          "n_inputs": 25088
+        },
+        {
+          "name": "RG_3",
+          "n_core": 2,
+          "lcn": 4,
+          "aer_area": 2,
+          "n_elems": 12544,
+          "n_inputs": 8192
+        },
+        {
+          "name": "RG_6",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 1792,
+          "n_inputs": 7168
+        },
+        {
+          "name": "RG_7",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 1344,
+          "n_inputs": 5376
+        },
+        {
+          "name": "RG_4",
+          "n_core": 13,
+          "lcn": 6,
+          "aer_area": 13,
+          "n_elems": 256,
+          "n_inputs": 3136
+        },
+        {
+          "name": "RG_5",
+          "n_core": 1,
+          "lcn": 2,
+          "aer_area": 1,
+          "n_elems": 10,
+          "n_inputs": 256
+        }
+      ],
+      "sram": [
+        4020,
+        2412,
+        1572,
+        4064,
+        3160,
+        1794,
+        1346,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3153,
+        171
+      ],
+      "out_widths": [
+        1,
+        1,
+        8,
+        8,
+        8,
+        8
+      ],
+      "wt_widths": [
+        8,
+        1,
+        8,
+        1,
+        8,
+        8
+      ],
+      "cores_needed": 21,
+      "cores_occupied": 21
+    },
+    {
+      "label": "act-L1-4bit",
+      "widths": [
+        8,
+        4,
+        8,
+        8
+      ],
+      "weight_bits": 8,
+      "ok": true,
+      "error": "",
+      "seconds": 8.359446709000622,
+      "groups": [
+        {
+          "name": "RG_1",
+          "n_core": 2,
+          "lcn": 4,
+          "aer_area": 2,
+          "n_elems": 25088,
+          "n_inputs": 900
+        },
+        {
+          "name": "RG_6",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 1792,
+          "n_inputs": 7168
+        },
+        {
+          "name": "RG_7",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 1792,
+          "n_inputs": 7168
+        },
+        {
+          "name": "RG_8",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 1792,
+          "n_inputs": 7168
+        },
+        {
+          "name": "RG_9",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 896,
+          "n_inputs": 3584
+        },
+        {
+          "name": "RG_3",
+          "n_core": 2,
+          "lcn": 7,
+          "aer_area": 2,
+          "n_elems": 12544,
+          "n_inputs": 8192
+        },
+        {
+          "name": "RG_2",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 3136,
+          "n_inputs": 12544
+        },
+        {
+          "name": "RG_4",
+          "n_core": 13,
+          "lcn": 5,
+          "aer_area": 13,
+          "n_elems": 256,
+          "n_inputs": 3136
+        },
+        {
+          "name": "RG_5",
+          "n_core": 1,
+          "lcn": 2,
+          "aer_area": 1,
+          "n_elems": 10,
+          "n_inputs": 256
+        }
+      ],
+      "sram": [
+        4051,
+        2671,
+        452,
+        452,
+        452,
+        228,
+        4065,
+        2967,
+        788,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3153,
+        171
+      ],
+      "out_widths": [
+        8,
+        8,
+        4,
+        4,
+        8,
+        8
+      ],
+      "wt_widths": [
+        8,
+        1,
+        8,
+        1,
+        8,
+        8
+      ],
+      "cores_needed": 23,
+      "cores_occupied": 23
+    },
+    {
+      "label": "act-L1-1bit",
+      "widths": [
+        8,
+        1,
+        8,
+        8
+      ],
+      "weight_bits": 8,
+      "ok": true,
+      "error": "",
+      "seconds": 7.7340676250023535,
+      "groups": [
+        {
+          "name": "RG_1",
+          "n_core": 2,
+          "lcn": 4,
+          "aer_area": 2,
+          "n_elems": 25088,
+          "n_inputs": 900
+        },
+        {
+          "name": "RG_6",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 1792,
+          "n_inputs": 7168
+        },
+        {
+          "name": "RG_7",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 1792,
+          "n_inputs": 7168
+        },
+        {
+          "name": "RG_8",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 1792,
+          "n_inputs": 7168
+        },
+        {
+          "name": "RG_9",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 896,
+          "n_inputs": 3584
+        },
+        {
+          "name": "RG_3",
+          "n_core": 2,
+          "lcn": 7,
+          "aer_area": 2,
+          "n_elems": 12544,
+          "n_inputs": 8192
+        },
+        {
+          "name": "RG_2",
+          "n_core": 1,
+          "lcn": 5,
+          "aer_area": 1,
+          "n_elems": 3136,
+          "n_inputs": 12544
+        },
+        {
+          "name": "RG_4",
+          "n_core": 13,
+          "lcn": 3,
+          "aer_area": 13,
+          "n_elems": 256,
+          "n_inputs": 3136
+        },
+        {
+          "name": "RG_5",
+          "n_core": 1,
+          "lcn": 2,
+          "aer_area": 1,
+          "n_elems": 10,
+          "n_inputs": 256
+        }
+      ],
+      "sram": [
+        4051,
+        2671,
+        452,
+        452,
+        452,
+        228,
+        4065,
+        2967,
+        788,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3153,
+        171
+      ],
+      "out_widths": [
+        8,
+        8,
+        1,
+        1,
+        8,
+        8
+      ],
+      "wt_widths": [
+        8,
+        1,
+        8,
+        1,
+        8,
+        8
+      ],
+      "cores_needed": 23,
+      "cores_occupied": 23
+    },
+    {
+      "label": "act-L2-4bit",
+      "widths": [
+        8,
+        8,
+        4,
+        8
+      ],
+      "weight_bits": 8,
+      "ok": true,
+      "error": "",
+      "seconds": 14.244887374996324,
+      "groups": [
+        {
+          "name": "RG_1",
+          "n_core": 2,
+          "lcn": 4,
+          "aer_area": 2,
+          "n_elems": 25088,
+          "n_inputs": 900
+        },
+        {
+          "name": "RG_6",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 1792,
+          "n_inputs": 7168
+        },
+        {
+          "name": "RG_7",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 1792,
+          "n_inputs": 7168
+        },
+        {
+          "name": "RG_8",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 1792,
+          "n_inputs": 7168
+        },
+        {
+          "name": "RG_9",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 896,
+          "n_inputs": 3584
+        },
+        {
+          "name": "RG_3",
+          "n_core": 2,
+          "lcn": 7,
+          "aer_area": 2,
+          "n_elems": 12544,
+          "n_inputs": 8192
+        },
+        {
+          "name": "RG_10",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 1792,
+          "n_inputs": 7168
+        },
+        {
+          "name": "RG_11",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 1344,
+          "n_inputs": 5376
+        },
+        {
+          "name": "RG_4",
+          "n_core": 13,
+          "lcn": 6,
+          "aer_area": 13,
+          "n_elems": 256,
+          "n_inputs": 3136
+        },
+        {
+          "name": "RG_5",
+          "n_core": 1,
+          "lcn": 1,
+          "aer_area": 1,
+          "n_elems": 10,
+          "n_inputs": 256
+        }
+      ],
+      "sram": [
+        4051,
+        2671,
+        452,
+        452,
+        452,
+        228,
+        4064,
+        3160,
+        1794,
+        1346,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3153,
+        171
+      ],
+      "out_widths": [
+        8,
+        8,
+        8,
+        8,
+        4,
+        8
+      ],
+      "wt_widths": [
+        8,
+        1,
+        8,
+        1,
+        8,
+        8
+      ],
+      "cores_needed": 24,
+      "cores_occupied": 24
+    },
+    {
+      "label": "act-L2-1bit",
+      "widths": [
+        8,
+        8,
+        1,
+        8
+      ],
+      "weight_bits": 8,
+      "ok": true,
+      "error": "",
+      "seconds": 13.06770700000925,
+      "groups": [
+        {
+          "name": "RG_1",
+          "n_core": 2,
+          "lcn": 4,
+          "aer_area": 2,
+          "n_elems": 25088,
+          "n_inputs": 900
+        },
+        {
+          "name": "RG_6",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 1792,
+          "n_inputs": 7168
+        },
+        {
+          "name": "RG_7",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 1792,
+          "n_inputs": 7168
+        },
+        {
+          "name": "RG_8",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 1792,
+          "n_inputs": 7168
+        },
+        {
+          "name": "RG_9",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 896,
+          "n_inputs": 3584
+        },
+        {
+          "name": "RG_3",
+          "n_core": 2,
+          "lcn": 7,
+          "aer_area": 2,
+          "n_elems": 12544,
+          "n_inputs": 8192
+        },
+        {
+          "name": "RG_10",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 1792,
+          "n_inputs": 7168
+        },
+        {
+          "name": "RG_11",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 1344,
+          "n_inputs": 5376
+        },
+        {
+          "name": "RG_4",
+          "n_core": 13,
+          "lcn": 6,
+          "aer_area": 13,
+          "n_elems": 256,
+          "n_inputs": 3136
+        },
+        {
+          "name": "RG_5",
+          "n_core": 1,
+          "lcn": 0,
+          "aer_area": 1,
+          "n_elems": 10,
+          "n_inputs": 256
+        }
+      ],
+      "sram": [
+        4051,
+        2671,
+        452,
+        452,
+        452,
+        228,
+        4064,
+        3160,
+        1794,
+        1346,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3153,
+        171
+      ],
+      "out_widths": [
+        8,
+        8,
+        8,
+        8,
+        1,
+        8
+      ],
+      "wt_widths": [
+        8,
+        1,
+        8,
+        1,
+        8,
+        8
+      ],
+      "cores_needed": 24,
+      "cores_occupied": 24
+    },
+    {
+      "label": "act-L3-4bit",
+      "widths": [
+        8,
+        8,
+        8,
+        4
+      ],
+      "weight_bits": 8,
+      "ok": true,
+      "error": "",
+      "seconds": 14.274063707998721,
+      "groups": [
+        {
+          "name": "RG_1",
+          "n_core": 2,
+          "lcn": 4,
+          "aer_area": 2,
+          "n_elems": 25088,
+          "n_inputs": 900
+        },
+        {
+          "name": "RG_6",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 1792,
+          "n_inputs": 7168
+        },
+        {
+          "name": "RG_7",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 1792,
+          "n_inputs": 7168
+        },
+        {
+          "name": "RG_8",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 1792,
+          "n_inputs": 7168
+        },
+        {
+          "name": "RG_9",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 896,
+          "n_inputs": 3584
+        },
+        {
+          "name": "RG_3",
+          "n_core": 2,
+          "lcn": 7,
+          "aer_area": 2,
+          "n_elems": 12544,
+          "n_inputs": 8192
+        },
+        {
+          "name": "RG_10",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 1792,
+          "n_inputs": 7168
+        },
+        {
+          "name": "RG_11",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 1344,
+          "n_inputs": 5376
+        },
+        {
+          "name": "RG_4",
+          "n_core": 13,
+          "lcn": 6,
+          "aer_area": 13,
+          "n_elems": 256,
+          "n_inputs": 3136
+        },
+        {
+          "name": "RG_5",
+          "n_core": 1,
+          "lcn": 2,
+          "aer_area": 1,
+          "n_elems": 10,
+          "n_inputs": 256
+        }
+      ],
+      "sram": [
+        4051,
+        2671,
+        452,
+        452,
+        452,
+        228,
+        4064,
+        3160,
+        1794,
+        1346,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3153,
+        171
+      ],
+      "out_widths": [
+        8,
+        8,
+        8,
+        8,
+        8,
+        4
+      ],
+      "wt_widths": [
+        8,
+        1,
+        8,
+        1,
+        8,
+        8
+      ],
+      "cores_needed": 24,
+      "cores_occupied": 24
+    },
+    {
+      "label": "act-L3-1bit",
+      "widths": [
+        8,
+        8,
+        8,
+        1
+      ],
+      "weight_bits": 8,
+      "ok": true,
+      "error": "",
+      "seconds": 15.172844750006334,
+      "groups": [
+        {
+          "name": "RG_1",
+          "n_core": 2,
+          "lcn": 4,
+          "aer_area": 2,
+          "n_elems": 25088,
+          "n_inputs": 900
+        },
+        {
+          "name": "RG_6",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 1792,
+          "n_inputs": 7168
+        },
+        {
+          "name": "RG_7",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 1792,
+          "n_inputs": 7168
+        },
+        {
+          "name": "RG_8",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 1792,
+          "n_inputs": 7168
+        },
+        {
+          "name": "RG_9",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 896,
+          "n_inputs": 3584
+        },
+        {
+          "name": "RG_3",
+          "n_core": 2,
+          "lcn": 7,
+          "aer_area": 2,
+          "n_elems": 12544,
+          "n_inputs": 8192
+        },
+        {
+          "name": "RG_10",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 1792,
+          "n_inputs": 7168
+        },
+        {
+          "name": "RG_11",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "n_elems": 1344,
+          "n_inputs": 5376
+        },
+        {
+          "name": "RG_4",
+          "n_core": 13,
+          "lcn": 6,
+          "aer_area": 13,
+          "n_elems": 256,
+          "n_inputs": 3136
+        },
+        {
+          "name": "RG_5",
+          "n_core": 1,
+          "lcn": 2,
+          "aer_area": 1,
+          "n_elems": 10,
+          "n_inputs": 256
+        }
+      ],
+      "sram": [
+        4051,
+        2671,
+        452,
+        452,
+        452,
+        228,
+        4064,
+        3160,
+        1794,
+        1346,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3941,
+        3153,
+        171
+      ],
+      "out_widths": [
+        8,
+        8,
+        8,
+        8,
+        8,
+        1
+      ],
+      "wt_widths": [
+        8,
+        1,
+        8,
+        1,
+        8,
+        8
+      ],
+      "cores_needed": 24,
+      "cores_occupied": 24
+    }
+  ]
+}

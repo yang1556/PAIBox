@@ -1,0 +1,1179 @@
+{
+  "spec": {
+    "kind": "cnn",
+    "in_shape": [
+      1,
+      28,
+      28
+    ],
+    "channels": [
+      16,
+      32
+    ],
+    "fc": 128,
+    "classes": 10,
+    "mlp_sizes": [
+      256,
+      128,
+      64
+    ]
+  },
+  "results": [
+    {
+      "label": "w8bit",
+      "modes": "AAAA",
+      "weight_bits": 8,
+      "act_bits": [
+        8,
+        8,
+        8,
+        8
+      ],
+      "timesteps": 8,
+      "ok": true,
+      "error": "",
+      "seconds": 6.112528708006721,
+      "cores": [
+        {
+          "name": "SequentialOp_0",
+          "mode": "ANN",
+          "in_bits": 8,
+          "out_bits": 8,
+          "wt_bits": 8,
+          "has_lut": true
+        },
+        {
+          "name": "StandaloneCompOp_1",
+          "mode": "ANN",
+          "in_bits": 8,
+          "out_bits": 8,
+          "wt_bits": 1,
+          "has_lut": true
+        },
+        {
+          "name": "SequentialOp_1",
+          "mode": "ANN",
+          "in_bits": 8,
+          "out_bits": 8,
+          "wt_bits": 8,
+          "has_lut": true
+        },
+        {
+          "name": "StandaloneCompOp_3",
+          "mode": "ANN",
+          "in_bits": 8,
+          "out_bits": 8,
+          "wt_bits": 1,
+          "has_lut": true
+        },
+        {
+          "name": "SequentialOp_2",
+          "mode": "ANN",
+          "in_bits": 8,
+          "out_bits": 8,
+          "wt_bits": 8,
+          "has_lut": true
+        },
+        {
+          "name": "SequentialOp_3",
+          "mode": "ANN",
+          "in_bits": 8,
+          "out_bits": 8,
+          "wt_bits": 8,
+          "has_lut": true
+        }
+      ],
+      "groups": [
+        {
+          "name": "RG_1",
+          "n_core": 1,
+          "lcn": 4,
+          "aer_area": 1,
+          "t_max": 16,
+          "n_elems": 12544,
+          "n_inputs": 900
+        },
+        {
+          "name": "RG_6",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "t_max": 2,
+          "n_elems": 2016,
+          "n_inputs": 8064
+        },
+        {
+          "name": "RG_7",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "t_max": 2,
+          "n_elems": 1120,
+          "n_inputs": 4480
+        },
+        {
+          "name": "RG_3",
+          "n_core": 1,
+          "lcn": 6,
+          "aer_area": 1,
+          "t_max": 4,
+          "n_elems": 6272,
+          "n_inputs": 4096
+        },
+        {
+          "name": "RG_2",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "t_max": 2,
+          "n_elems": 1568,
+          "n_inputs": 6272
+        },
+        {
+          "name": "RG_4",
+          "n_core": 4,
+          "lcn": 5,
+          "aer_area": 4,
+          "t_max": 8,
+          "n_elems": 128,
+          "n_inputs": 1568
+        },
+        {
+          "name": "RG_5",
+          "n_core": 1,
+          "lcn": 1,
+          "aer_area": 1,
+          "t_max": 128,
+          "n_elems": 10,
+          "n_inputs": 128
+        }
+      ],
+      "sram": [
+        3264,
+        508,
+        284,
+        2590,
+        396,
+        4060,
+        4060,
+        4060,
+        496,
+        91
+      ],
+      "cores_needed": 10,
+      "cores_occupied": 10,
+      "readout": "STREAM",
+      "out_lcn": 0,
+      "depth": 6,
+      "chip_acc": 0.982421875,
+      "float_acc": 0.9794
+    },
+    {
+      "label": "w4bit",
+      "modes": "AAAA",
+      "weight_bits": 4,
+      "act_bits": [
+        8,
+        8,
+        8,
+        8
+      ],
+      "timesteps": 8,
+      "ok": true,
+      "error": "",
+      "seconds": 4.719158416992286,
+      "cores": [
+        {
+          "name": "SequentialOp_0",
+          "mode": "ANN",
+          "in_bits": 8,
+          "out_bits": 8,
+          "wt_bits": 4,
+          "has_lut": true
+        },
+        {
+          "name": "StandaloneCompOp_1",
+          "mode": "ANN",
+          "in_bits": 8,
+          "out_bits": 8,
+          "wt_bits": 1,
+          "has_lut": true
+        },
+        {
+          "name": "SequentialOp_1",
+          "mode": "ANN",
+          "in_bits": 8,
+          "out_bits": 8,
+          "wt_bits": 4,
+          "has_lut": true
+        },
+        {
+          "name": "StandaloneCompOp_3",
+          "mode": "ANN",
+          "in_bits": 8,
+          "out_bits": 8,
+          "wt_bits": 1,
+          "has_lut": true
+        },
+        {
+          "name": "SequentialOp_2",
+          "mode": "ANN",
+          "in_bits": 8,
+          "out_bits": 8,
+          "wt_bits": 4,
+          "has_lut": true
+        },
+        {
+          "name": "SequentialOp_3",
+          "mode": "ANN",
+          "in_bits": 8,
+          "out_bits": 8,
+          "wt_bits": 4,
+          "has_lut": true
+        }
+      ],
+      "groups": [
+        {
+          "name": "RG_1",
+          "n_core": 1,
+          "lcn": 4,
+          "aer_area": 1,
+          "t_max": 16,
+          "n_elems": 12544,
+          "n_inputs": 900
+        },
+        {
+          "name": "RG_6",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "t_max": 2,
+          "n_elems": 2016,
+          "n_inputs": 8064
+        },
+        {
+          "name": "RG_7",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "t_max": 2,
+          "n_elems": 1120,
+          "n_inputs": 4480
+        },
+        {
+          "name": "RG_3",
+          "n_core": 1,
+          "lcn": 6,
+          "aer_area": 1,
+          "t_max": 4,
+          "n_elems": 6272,
+          "n_inputs": 4096
+        },
+        {
+          "name": "RG_2",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "t_max": 2,
+          "n_elems": 1568,
+          "n_inputs": 6272
+        },
+        {
+          "name": "RG_4",
+          "n_core": 2,
+          "lcn": 5,
+          "aer_area": 2,
+          "t_max": 8,
+          "n_elems": 128,
+          "n_inputs": 1568
+        },
+        {
+          "name": "RG_5",
+          "n_core": 1,
+          "lcn": 1,
+          "aer_area": 1,
+          "t_max": 128,
+          "n_elems": 10,
+          "n_inputs": 128
+        }
+      ],
+      "sram": [
+        3263,
+        508,
+        284,
+        2288,
+        396,
+        4051,
+        2351,
+        51
+      ],
+      "cores_needed": 8,
+      "cores_occupied": 8,
+      "readout": "STREAM",
+      "out_lcn": 0,
+      "depth": 6,
+      "chip_acc": 0.98046875,
+      "float_acc": 0.9794
+    },
+    {
+      "label": "w2bit",
+      "modes": "AAAA",
+      "weight_bits": 2,
+      "act_bits": [
+        8,
+        8,
+        8,
+        8
+      ],
+      "timesteps": 8,
+      "ok": true,
+      "error": "",
+      "seconds": 4.552267332997872,
+      "cores": [
+        {
+          "name": "SequentialOp_0",
+          "mode": "ANN",
+          "in_bits": 8,
+          "out_bits": 8,
+          "wt_bits": 2,
+          "has_lut": true
+        },
+        {
+          "name": "StandaloneCompOp_1",
+          "mode": "ANN",
+          "in_bits": 8,
+          "out_bits": 8,
+          "wt_bits": 1,
+          "has_lut": true
+        },
+        {
+          "name": "SequentialOp_1",
+          "mode": "ANN",
+          "in_bits": 8,
+          "out_bits": 8,
+          "wt_bits": 2,
+          "has_lut": true
+        },
+        {
+          "name": "StandaloneCompOp_3",
+          "mode": "ANN",
+          "in_bits": 8,
+          "out_bits": 8,
+          "wt_bits": 1,
+          "has_lut": true
+        },
+        {
+          "name": "SequentialOp_2",
+          "mode": "ANN",
+          "in_bits": 8,
+          "out_bits": 8,
+          "wt_bits": 2,
+          "has_lut": true
+        },
+        {
+          "name": "SequentialOp_3",
+          "mode": "ANN",
+          "in_bits": 8,
+          "out_bits": 8,
+          "wt_bits": 2,
+          "has_lut": true
+        }
+      ],
+      "groups": [
+        {
+          "name": "RG_1",
+          "n_core": 2,
+          "lcn": 4,
+          "aer_area": 2,
+          "t_max": 16,
+          "n_elems": 12544,
+          "n_inputs": 900
+        },
+        {
+          "name": "RG_6",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "t_max": 2,
+          "n_elems": 2016,
+          "n_inputs": 8064
+        },
+        {
+          "name": "RG_7",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "t_max": 2,
+          "n_elems": 1120,
+          "n_inputs": 4480
+        },
+        {
+          "name": "RG_3",
+          "n_core": 1,
+          "lcn": 6,
+          "aer_area": 1,
+          "t_max": 4,
+          "n_elems": 6272,
+          "n_inputs": 4096
+        },
+        {
+          "name": "RG_2",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "t_max": 2,
+          "n_elems": 1568,
+          "n_inputs": 6272
+        },
+        {
+          "name": "RG_4",
+          "n_core": 1,
+          "lcn": 5,
+          "aer_area": 1,
+          "t_max": 8,
+          "n_elems": 128,
+          "n_inputs": 1568
+        },
+        {
+          "name": "RG_5",
+          "n_core": 1,
+          "lcn": 1,
+          "aer_area": 1,
+          "t_max": 128,
+          "n_elems": 10,
+          "n_inputs": 128
+        }
+      ],
+      "sram": [
+        4096,
+        318,
+        508,
+        284,
+        2431,
+        396,
+        398,
+        31
+      ],
+      "cores_needed": 8,
+      "cores_occupied": 8,
+      "readout": "STREAM",
+      "out_lcn": 0,
+      "depth": 6,
+      "chip_acc": 0.19140625,
+      "float_acc": 0.9794
+    },
+    {
+      "label": "w1bit",
+      "modes": "AAAA",
+      "weight_bits": 1,
+      "act_bits": [
+        8,
+        8,
+        8,
+        8
+      ],
+      "timesteps": 8,
+      "ok": true,
+      "error": "",
+      "seconds": 4.6719813749950845,
+      "cores": [
+        {
+          "name": "SequentialOp_0",
+          "mode": "ANN",
+          "in_bits": 8,
+          "out_bits": 8,
+          "wt_bits": 2,
+          "has_lut": true
+        },
+        {
+          "name": "StandaloneCompOp_1",
+          "mode": "ANN",
+          "in_bits": 8,
+          "out_bits": 8,
+          "wt_bits": 1,
+          "has_lut": true
+        },
+        {
+          "name": "SequentialOp_1",
+          "mode": "ANN",
+          "in_bits": 8,
+          "out_bits": 8,
+          "wt_bits": 2,
+          "has_lut": true
+        },
+        {
+          "name": "StandaloneCompOp_3",
+          "mode": "ANN",
+          "in_bits": 8,
+          "out_bits": 8,
+          "wt_bits": 1,
+          "has_lut": true
+        },
+        {
+          "name": "SequentialOp_2",
+          "mode": "ANN",
+          "in_bits": 8,
+          "out_bits": 8,
+          "wt_bits": 2,
+          "has_lut": true
+        },
+        {
+          "name": "SequentialOp_3",
+          "mode": "ANN",
+          "in_bits": 8,
+          "out_bits": 8,
+          "wt_bits": 2,
+          "has_lut": true
+        }
+      ],
+      "groups": [
+        {
+          "name": "RG_1",
+          "n_core": 2,
+          "lcn": 4,
+          "aer_area": 2,
+          "t_max": 16,
+          "n_elems": 12544,
+          "n_inputs": 900
+        },
+        {
+          "name": "RG_6",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "t_max": 2,
+          "n_elems": 2016,
+          "n_inputs": 8064
+        },
+        {
+          "name": "RG_7",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "t_max": 2,
+          "n_elems": 1120,
+          "n_inputs": 4480
+        },
+        {
+          "name": "RG_3",
+          "n_core": 1,
+          "lcn": 6,
+          "aer_area": 1,
+          "t_max": 4,
+          "n_elems": 6272,
+          "n_inputs": 4096
+        },
+        {
+          "name": "RG_2",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "t_max": 2,
+          "n_elems": 1568,
+          "n_inputs": 6272
+        },
+        {
+          "name": "RG_4",
+          "n_core": 1,
+          "lcn": 5,
+          "aer_area": 1,
+          "t_max": 8,
+          "n_elems": 128,
+          "n_inputs": 1568
+        },
+        {
+          "name": "RG_5",
+          "n_core": 1,
+          "lcn": 1,
+          "aer_area": 1,
+          "t_max": 128,
+          "n_elems": 10,
+          "n_inputs": 128
+        }
+      ],
+      "sram": [
+        4096,
+        318,
+        508,
+        284,
+        2431,
+        396,
+        398,
+        31
+      ],
+      "cores_needed": 8,
+      "cores_occupied": 8,
+      "readout": "STREAM",
+      "out_lcn": 0,
+      "depth": 6,
+      "chip_acc": 0.19140625,
+      "float_acc": 0.9794
+    },
+    {
+      "label": "act8bit",
+      "modes": "AAAA",
+      "weight_bits": 8,
+      "act_bits": [
+        8,
+        8,
+        8,
+        8
+      ],
+      "timesteps": 8,
+      "ok": true,
+      "error": "",
+      "seconds": 5.443168666999554,
+      "cores": [
+        {
+          "name": "SequentialOp_0",
+          "mode": "ANN",
+          "in_bits": 8,
+          "out_bits": 8,
+          "wt_bits": 8,
+          "has_lut": true
+        },
+        {
+          "name": "StandaloneCompOp_1",
+          "mode": "ANN",
+          "in_bits": 8,
+          "out_bits": 8,
+          "wt_bits": 1,
+          "has_lut": true
+        },
+        {
+          "name": "SequentialOp_1",
+          "mode": "ANN",
+          "in_bits": 8,
+          "out_bits": 8,
+          "wt_bits": 8,
+          "has_lut": true
+        },
+        {
+          "name": "StandaloneCompOp_3",
+          "mode": "ANN",
+          "in_bits": 8,
+          "out_bits": 8,
+          "wt_bits": 1,
+          "has_lut": true
+        },
+        {
+          "name": "SequentialOp_2",
+          "mode": "ANN",
+          "in_bits": 8,
+          "out_bits": 8,
+          "wt_bits": 8,
+          "has_lut": true
+        },
+        {
+          "name": "SequentialOp_3",
+          "mode": "ANN",
+          "in_bits": 8,
+          "out_bits": 8,
+          "wt_bits": 8,
+          "has_lut": true
+        }
+      ],
+      "groups": [
+        {
+          "name": "RG_1",
+          "n_core": 1,
+          "lcn": 4,
+          "aer_area": 1,
+          "t_max": 16,
+          "n_elems": 12544,
+          "n_inputs": 900
+        },
+        {
+          "name": "RG_6",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "t_max": 2,
+          "n_elems": 2016,
+          "n_inputs": 8064
+        },
+        {
+          "name": "RG_7",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "t_max": 2,
+          "n_elems": 1120,
+          "n_inputs": 4480
+        },
+        {
+          "name": "RG_3",
+          "n_core": 1,
+          "lcn": 6,
+          "aer_area": 1,
+          "t_max": 4,
+          "n_elems": 6272,
+          "n_inputs": 4096
+        },
+        {
+          "name": "RG_2",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "t_max": 2,
+          "n_elems": 1568,
+          "n_inputs": 6272
+        },
+        {
+          "name": "RG_4",
+          "n_core": 4,
+          "lcn": 5,
+          "aer_area": 4,
+          "t_max": 8,
+          "n_elems": 128,
+          "n_inputs": 1568
+        },
+        {
+          "name": "RG_5",
+          "n_core": 1,
+          "lcn": 1,
+          "aer_area": 1,
+          "t_max": 128,
+          "n_elems": 10,
+          "n_inputs": 128
+        }
+      ],
+      "sram": [
+        3264,
+        508,
+        284,
+        2590,
+        396,
+        4060,
+        4060,
+        4060,
+        496,
+        91
+      ],
+      "cores_needed": 10,
+      "cores_occupied": 10,
+      "readout": "STREAM",
+      "out_lcn": 0,
+      "depth": 6,
+      "chip_acc": 0.982421875,
+      "float_acc": 0.9794
+    },
+    {
+      "label": "act4bit",
+      "modes": "AAAA",
+      "weight_bits": 8,
+      "act_bits": [
+        4,
+        4,
+        4,
+        4
+      ],
+      "timesteps": 8,
+      "ok": true,
+      "error": "",
+      "seconds": 6.120066750008846,
+      "cores": [
+        {
+          "name": "SequentialOp_0",
+          "mode": "ANN",
+          "in_bits": 8,
+          "out_bits": 4,
+          "wt_bits": 8,
+          "has_lut": true
+        },
+        {
+          "name": "StandaloneCompOp_1",
+          "mode": "ANN",
+          "in_bits": 4,
+          "out_bits": 4,
+          "wt_bits": 1,
+          "has_lut": true
+        },
+        {
+          "name": "SequentialOp_1",
+          "mode": "ANN",
+          "in_bits": 4,
+          "out_bits": 4,
+          "wt_bits": 8,
+          "has_lut": true
+        },
+        {
+          "name": "StandaloneCompOp_3",
+          "mode": "ANN",
+          "in_bits": 4,
+          "out_bits": 4,
+          "wt_bits": 1,
+          "has_lut": true
+        },
+        {
+          "name": "SequentialOp_2",
+          "mode": "ANN",
+          "in_bits": 4,
+          "out_bits": 4,
+          "wt_bits": 8,
+          "has_lut": true
+        },
+        {
+          "name": "SequentialOp_3",
+          "mode": "ANN",
+          "in_bits": 4,
+          "out_bits": 4,
+          "wt_bits": 8,
+          "has_lut": true
+        }
+      ],
+      "groups": [
+        {
+          "name": "RG_1",
+          "n_core": 1,
+          "lcn": 4,
+          "aer_area": 1,
+          "t_max": 16,
+          "n_elems": 12544,
+          "n_inputs": 900
+        },
+        {
+          "name": "RG_0",
+          "n_core": 1,
+          "lcn": 7,
+          "aer_area": 1,
+          "t_max": 2,
+          "n_elems": 3136,
+          "n_inputs": 12544
+        },
+        {
+          "name": "RG_3",
+          "n_core": 1,
+          "lcn": 5,
+          "aer_area": 1,
+          "t_max": 8,
+          "n_elems": 6272,
+          "n_inputs": 4096
+        },
+        {
+          "name": "RG_2",
+          "n_core": 1,
+          "lcn": 6,
+          "aer_area": 1,
+          "t_max": 4,
+          "n_elems": 1568,
+          "n_inputs": 6272
+        },
+        {
+          "name": "RG_4",
+          "n_core": 4,
+          "lcn": 4,
+          "aer_area": 4,
+          "t_max": 16,
+          "n_elems": 128,
+          "n_inputs": 1568
+        },
+        {
+          "name": "RG_5",
+          "n_core": 1,
+          "lcn": 0,
+          "aer_area": 1,
+          "t_max": 256,
+          "n_elems": 10,
+          "n_inputs": 128
+        }
+      ],
+      "sram": [
+        3216,
+        788,
+        2590,
+        396,
+        4060,
+        4060,
+        4060,
+        496,
+        91
+      ],
+      "cores_needed": 9,
+      "cores_occupied": 9,
+      "readout": "STREAM",
+      "out_lcn": 0,
+      "depth": 6,
+      "chip_acc": 0.966796875,
+      "float_acc": 0.9794
+    },
+    {
+      "label": "act2bit",
+      "modes": "AAAA",
+      "weight_bits": 8,
+      "act_bits": [
+        2,
+        2,
+        2,
+        2
+      ],
+      "timesteps": 8,
+      "ok": true,
+      "error": "",
+      "seconds": 5.814249416987877,
+      "cores": [
+        {
+          "name": "SequentialOp_0",
+          "mode": "ANN",
+          "in_bits": 8,
+          "out_bits": 2,
+          "wt_bits": 8,
+          "has_lut": true
+        },
+        {
+          "name": "StandaloneCompOp_1",
+          "mode": "ANN",
+          "in_bits": 2,
+          "out_bits": 2,
+          "wt_bits": 1,
+          "has_lut": true
+        },
+        {
+          "name": "SequentialOp_1",
+          "mode": "ANN",
+          "in_bits": 2,
+          "out_bits": 2,
+          "wt_bits": 8,
+          "has_lut": true
+        },
+        {
+          "name": "StandaloneCompOp_3",
+          "mode": "ANN",
+          "in_bits": 2,
+          "out_bits": 2,
+          "wt_bits": 1,
+          "has_lut": true
+        },
+        {
+          "name": "SequentialOp_2",
+          "mode": "ANN",
+          "in_bits": 2,
+          "out_bits": 2,
+          "wt_bits": 8,
+          "has_lut": true
+        },
+        {
+          "name": "SequentialOp_3",
+          "mode": "ANN",
+          "in_bits": 2,
+          "out_bits": 2,
+          "wt_bits": 8,
+          "has_lut": true
+        }
+      ],
+      "groups": [
+        {
+          "name": "RG_1",
+          "n_core": 1,
+          "lcn": 4,
+          "aer_area": 1,
+          "t_max": 16,
+          "n_elems": 12544,
+          "n_inputs": 900
+        },
+        {
+          "name": "RG_0",
+          "n_core": 1,
+          "lcn": 6,
+          "aer_area": 1,
+          "t_max": 4,
+          "n_elems": 3136,
+          "n_inputs": 12544
+        },
+        {
+          "name": "RG_3",
+          "n_core": 1,
+          "lcn": 4,
+          "aer_area": 1,
+          "t_max": 16,
+          "n_elems": 6272,
+          "n_inputs": 4096
+        },
+        {
+          "name": "RG_2",
+          "n_core": 1,
+          "lcn": 5,
+          "aer_area": 1,
+          "t_max": 8,
+          "n_elems": 1568,
+          "n_inputs": 6272
+        },
+        {
+          "name": "RG_4",
+          "n_core": 4,
+          "lcn": 3,
+          "aer_area": 4,
+          "t_max": 32,
+          "n_elems": 128,
+          "n_inputs": 1568
+        },
+        {
+          "name": "RG_5",
+          "n_core": 1,
+          "lcn": 0,
+          "aer_area": 1,
+          "t_max": 256,
+          "n_elems": 10,
+          "n_inputs": 128
+        }
+      ],
+      "sram": [
+        3216,
+        788,
+        2590,
+        396,
+        4060,
+        4060,
+        4060,
+        496,
+        91
+      ],
+      "cores_needed": 9,
+      "cores_occupied": 9,
+      "readout": "STREAM",
+      "out_lcn": 0,
+      "depth": 6,
+      "chip_acc": 0.396484375,
+      "float_acc": 0.9794
+    },
+    {
+      "label": "act1bit",
+      "modes": "AAAA",
+      "weight_bits": 8,
+      "act_bits": [
+        1,
+        1,
+        1,
+        1
+      ],
+      "timesteps": 8,
+      "ok": true,
+      "error": "",
+      "seconds": 5.892959290998988,
+      "cores": [
+        {
+          "name": "SequentialOp_0",
+          "mode": "ANN",
+          "in_bits": 8,
+          "out_bits": 1,
+          "wt_bits": 8,
+          "has_lut": true
+        },
+        {
+          "name": "StandaloneCompOp_1",
+          "mode": "SNN",
+          "in_bits": 1,
+          "out_bits": 1,
+          "wt_bits": 1,
+          "has_lut": false
+        },
+        {
+          "name": "SequentialOp_1",
+          "mode": "ANN",
+          "in_bits": 1,
+          "out_bits": 1,
+          "wt_bits": 8,
+          "has_lut": true
+        },
+        {
+          "name": "StandaloneCompOp_3",
+          "mode": "SNN",
+          "in_bits": 1,
+          "out_bits": 1,
+          "wt_bits": 1,
+          "has_lut": false
+        },
+        {
+          "name": "SequentialOp_2",
+          "mode": "ANN",
+          "in_bits": 1,
+          "out_bits": 1,
+          "wt_bits": 8,
+          "has_lut": true
+        },
+        {
+          "name": "SequentialOp_3",
+          "mode": "ANN",
+          "in_bits": 1,
+          "out_bits": 1,
+          "wt_bits": 8,
+          "has_lut": true
+        }
+      ],
+      "groups": [
+        {
+          "name": "RG_1",
+          "n_core": 1,
+          "lcn": 4,
+          "aer_area": 1,
+          "t_max": 16,
+          "n_elems": 12544,
+          "n_inputs": 900
+        },
+        {
+          "name": "RG_0",
+          "n_core": 1,
+          "lcn": 5,
+          "aer_area": 1,
+          "t_max": 8,
+          "n_elems": 3136,
+          "n_inputs": 12544
+        },
+        {
+          "name": "RG_3",
+          "n_core": 1,
+          "lcn": 3,
+          "aer_area": 1,
+          "t_max": 32,
+          "n_elems": 6272,
+          "n_inputs": 4096
+        },
+        {
+          "name": "RG_2",
+          "n_core": 1,
+          "lcn": 4,
+          "aer_area": 1,
+          "t_max": 16,
+          "n_elems": 1568,
+          "n_inputs": 6272
+        },
+        {
+          "name": "RG_4",
+          "n_core": 4,
+          "lcn": 2,
+          "aer_area": 4,
+          "t_max": 64,
+          "n_elems": 128,
+          "n_inputs": 1568
+        },
+        {
+          "name": "RG_5",
+          "n_core": 1,
+          "lcn": 0,
+          "aer_area": 1,
+          "t_max": 256,
+          "n_elems": 10,
+          "n_inputs": 128
+        }
+      ],
+      "sram": [
+        3216,
+        788,
+        2590,
+        396,
+        4060,
+        4060,
+        4060,
+        496,
+        91
+      ],
+      "cores_needed": 9,
+      "cores_occupied": 9,
+      "readout": "STREAM",
+      "out_lcn": 0,
+      "depth": 6,
+      "chip_acc": 0.193359375,
+      "float_acc": 0.9794
+    }
+  ]
+}

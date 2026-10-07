@@ -174,3 +174,16 @@ tasks/
 AGENTS.md
 CLAUDE.md
 QWEN.md
+
+.DS_Store
+
+# Experiment inputs that a fresh checkout can fetch for itself. Nothing here is
+# a result, so none of it is worth a transfer or a place in history.
+experiments/data/
+experiments/ckpt/cifar10_data/
+DVSGesture_sw_and_rt/data/
+
+# Trained weights. Not reproducible from the repo, but binary and large, so they
+# travel as their own archive rather than in history.
+*.pt
+*.pth

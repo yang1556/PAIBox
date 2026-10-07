@@ -1,0 +1,27 @@
+[project]
+name = "dvsgesture-board-infer-demo"
+version = "0.1.0"
+description = "Portable DVSGesture PAICORE 2.5 board inference demo with dataset replay and DVS camera input."
+requires-python = ">=3.11,<3.15"
+dependencies = [
+    "dv-processing>=2.0.3,<3",
+    "numpy>=1.24",
+    "opencv-python>=4.8",
+    "paicorelib>=2.0.0b5",
+    "pyserial>=3.5",
+]
+
+[dependency-groups]
+test = ["pytest>=9.0", "ruff>=0.14"]
+
+[tool.uv]
+python-preference = "system"
+package = false
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.pytest.ini_options]
+pythonpath = [".."]
+testpaths = ["tests"]
